@@ -1,0 +1,13 @@
+{
+  "name": "Arsalan Near Me",
+  "short_name": "Arsalan",
+  "description": "Find your nearest Arsalan biryani & pandal-hop across Kolkata, Durga Pujo 2026",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    { "src": "/arsalan-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

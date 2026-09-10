@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pujo Poth · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#0d0d0d;color:#f0eeec;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#1a1a1a}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.gold{color:#E9C15B}.muted{color:rgba(255,255,255,.4)}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+
+/* Login */
+#login{position:fixed;inset:0;background:#0d0d0d;display:flex;align-items:center;justify-content:center;z-index:100}
+.login-box{background:#191919;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:40px;width:340px}
+.login-box h1{font-size:22px;font-weight:800;margin-bottom:4px}
+.login-box p{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px}
+.field label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);display:block;margin-bottom:6px}
+.field input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px;font-size:15px;color:#f0eeec;outline:none;transition:border .15s}
+.field input:focus{border-color:#E9C15B}
+.field{margin-bottom:16px}
+.err{font-size:12px;color:#ff6b6b;margin-top:8px;min-height:18px}
+.btn-gold{width:100%;background:#E9C15B;color:#111;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;margin-top:8px;transition:opacity .15s}
+.btn-gold:hover{opacity:.9}
+.btn-ghost{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;transition:background .15s}
+.btn-ghost:hover{background:rgba(255,255,255,.12)}
+.btn-sm{background:rgba(233,193,91,.15);color:#E9C15B;border:1px solid rgba(233,193,91,.3);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;transition:background .15s}
+.btn-sm:hover{background:rgba(233,193,91,.25)}
+.btn-danger{background:rgba(255,80,80,.12);color:#ff6b6b;border:1px solid rgba(255,80,80,.25);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700}
+.btn-danger:hover{background:rgba(255,80,80,.22)}
+
+/* Layout */
+#app{display:none;flex-direction:column;min-height:100vh}
+header{background:#111;border-bottom:1px solid rgba(255,255,255,.07);padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+header h1{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+header h1 span{color:#E9C15B}
+.main{display:flex;flex:1;min-height:0}
+
+/* Sidebar */
+.sidebar{width:220px;flex:none;background:#111;border-right:1px solid rgba(255,255,255,.07);padding:20px 12px 80px;display:flex;flex-direction:column;gap:4px;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
+.sidebar-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);padding:12px 10px 6px}
+.zone-tab{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:rgba(255,255,255,.55);border:0;background:transparent;width:100%;text-align:left;transition:background .12s}
+.zone-tab:hover{background:rgba(255,255,255,.05)}
+.zone-tab.active{background:rgba(233,193,91,.12);color:#E9C15B}
+.zone-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
+.add-zone-btn{display:flex;align-items:center;gap:6px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;color:rgba(255,255,255,.35);border:1px dashed rgba(255,255,255,.12);background:transparent;width:100%;margin-top:8px;transition:all .12s}
+.add-zone-btn:hover{border-color:#E9C15B;color:#E9C15B}
+
+/* Content */
+.content{flex:1;padding:28px 32px 100px;overflow-y:auto}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-header h2{font-size:18px;font-weight:800}
+.section-header p{font-size:12px;color:rgba(255,255,255,.35);margin-top:2px}
+.card{background:#191919;border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;margin-bottom:24px}
+.card-header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.02)}
+.card-header h3{font-size:13px;font-weight:700;color:#E9C15B;letter-spacing:.06em;text-transform:uppercase}
+.item-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.04)}
+.item-row:last-child{border-bottom:0}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:14px;font-weight:700;color:#f0eeec}
+.item-sub{font-size:11.5px;color:rgba(255,255,255,.38);margin-top:2px}
+.plus-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 8px;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.5);font-family:monospace}
+.item-actions{display:flex;gap:6px;flex-shrink:0}
+.empty-row{padding:20px 18px;font-size:13px;color:rgba(255,255,255,.25);text-align:center}
+.zone-name-row{display:flex;gap:12px;margin-bottom:24px;background:#191919;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px}
+.zone-name-row .field{flex:1;margin:0}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:18px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:28px}
+.modal h2{font-size:18px;font-weight:800;margin-bottom:20px}
+.modal .field input,.modal .field select,.modal .field textarea{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 14px;font-size:14px;color:#f0eeec;width:100%;outline:none;transition:border .15s}
+.modal .field input:focus,.modal .field select:focus,.modal .field textarea:focus{border-color:#E9C15B}
+.modal .field select option{background:#1a1a1a}
+.modal .field textarea{resize:vertical;min-height:60px}
+.modal-footer{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.crowd-row{display:flex;gap:6px}
+.crowd-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.4);font-size:13px;font-weight:700;transition:all .12s}
+.crowd-btn.active{border-color:#E9C15B;background:rgba(233,193,91,.15);color:#E9C15B}
+.hint{font-size:11px;color:rgba(255,255,255,.3);margin-top:5px}
+.btn-fetch{background:rgba(66,133,244,.15);color:#4285f4;border:1px solid rgba(66,133,244,.3);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;transition:background .15s;display:flex;align-items:center;gap:6px}
+.btn-fetch:hover{background:rgba(66,133,244,.25)}
+.fetch-status{font-size:11px;margin-top:6px;min-height:16px}
+
+/* Save bar */
+.save-bar{position:fixed;bottom:0;left:0;right:0;background:#191919;border-top:1px solid rgba(255,255,255,.08);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;z-index:60}
+.save-bar p{font-size:13px;color:rgba(255,255,255,.4)}
+.save-status{font-size:12px;color:#4caf50;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <h1>Pujo Poth <span class="gold">Admin</span></h1>
+    <p>Manage zones, pandals & Arsalan outlets</p>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')tryLogin()">
+    </div>
+    <div class="err" id="pw-err"></div>
+    <button class="btn-gold" onclick="tryLogin()">Sign in</button>
+    <p style="margin-top:16px;font-size:11px;color:rgba(255,255,255,.2);text-align:center">Default: pujo2025</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <h1>🕯️ Pujo Poth <span>Admin</span></h1>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="save-status" id="saved-label" style="display:none">✓ Saved</span>
+      <button class="btn-ghost" onclick="changePassword()">Change password</button>
+      <button class="btn-ghost" onclick="logout()">Sign out</button>
+    </div>
+  </header>
+  <div class="main">
+    <nav class="sidebar">
+      <div class="sidebar-label">Zones</div>
+      <div id="zone-list"></div>
+      <button class="add-zone-btn" onclick="addZone()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Add zone
+      </button>
+      <div class="sidebar-label" style="margin-top:auto">Settings</div>
+      <button class="zone-tab" onclick="showSettings()" id="tab-settings">⚙ Settings</button>
+    </nav>
+    <div class="content" id="content"></div>
+  </div>
+  <div class="save-bar">
+    <p>Changes are saved to local storage and picked up by the app automatically.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn-ghost" onclick="exportData()">Export JSON</button>
+      <button class="btn-ghost" onclick="importData()">Import JSON</button>
+      <button class="btn-gold" style="width:auto;padding:10px 22px;margin:0;font-size:14px" onclick="saveData()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const DEFAULT_DATA = {
+  zones:[
+    {id:'north',name:'North Kolkata',nameBn:'উত্তর কলকাতা',color:'#4285f4',
+     arsalan:[{id:'a1',name:'Arsalan Kankurgachi',shortName:'Kankurgachi',mapsLink:'https://maps.app.goo.gl/',placeName:'Arsalan Restaurant & Caterer - Kankurgachi',lat:22.5698,lng:88.3767,openHours:'open till 2 am',waitMin:20}],
+     pandals:[
+       {id:'p1',name:'Bagbazar Sarbojanin',nameBn:'বাগবাজার সর্বজনীন',mapsLink:'',placeName:'Bagbazar Sarbojanin, Kolkata',lat:22.5890,lng:88.3698,crowd:4,theme:'Traditional',queueMin:35,arsalanId:'a1'},
+       {id:'p2',name:'Kumartuli Park',nameBn:'কুমারটুলি পার্ক',mapsLink:'',placeName:'Kumartuli Park, Kolkata',lat:22.5833,lng:88.3630,crowd:3,theme:'Idol quarter',queueMin:20,arsalanId:'a1'},
+       {id:'p3',name:'Santosh Mitra Square',nameBn:'সন্তোষ মিত্র স্কোয়ার',mapsLink:'',placeName:'Santosh Mitra Square, Kolkata',lat:22.5680,lng:88.3598,crowd:5,theme:'Light spectacle',queueMin:55,arsalanId:'a1'},
+     ]},
+    {id:'south',name:'South Kolkata',nameBn:'দক্ষিণ কলকাতা',color:'#E9C15B',
+     arsalan:[{id:'a2',name:'Arsalan Park Circus',shortName:'Park Circus',mapsLink:'https://maps.app.goo.gl/',placeName:'Arsalan Restaurant & Caterer - Park Circus',lat:22.5373,lng:88.3650,openHours:'open till 2 am',waitMin:25}],
+     pandals:[
+       {id:'p4',name:'Ekdalia Evergreen',nameBn:'একডালিয়া এভারগ্রিন',mapsLink:'',placeName:'Ekdalia Evergreen Club, Kolkata',lat:22.5215,lng:88.3630,crowd:4,theme:'Temple facade',queueMin:20,arsalanId:'a2'},
+       {id:'p5',name:'Deshapriya Park',nameBn:'দেশপ্রিয় পার্ক',mapsLink:'',placeName:'Deshapriya Park Durga Puja, Kolkata',lat:22.5262,lng:88.3655,crowd:5,theme:'Grand scale',queueMin:50,arsalanId:'a2'},
+       {id:'p6',name:'Ballygunge Cultural',nameBn:'বালিগঞ্জ কালচারাল',mapsLink:'',placeName:'Ballygunge Cultural Association, Kolkata',lat:22.5195,lng:88.3718,crowd:4,theme:'Art install.',queueMin:30,arsalanId:'a2'},
+     ]},
+    {id:'behala',name:'Behala',nameBn:'বেহালা',color:'#4caf50',
+     arsalan:[{id:'a3',name:'Arsalan Behala',shortName:'Behala',mapsLink:'https://maps.app.goo.gl/',placeName:'Arsalan Restaurant & Caterer - Behala',lat:22.4986,lng:88.3194,openHours:'open till 2 am',waitMin:15}],
+     pandals:[
+       {id:'p7',name:'Barisha Club',nameBn:'বড়িশা ক্লাব',mapsLink:'',placeName:'Barisha Club, Kolkata',lat:22.4978,lng:88.3133,crowd:4,theme:'Story theme',queueMin:30,arsalanId:'a3'},
+       {id:'p8',name:'Behala Nutan Dal',nameBn:'বেহালা নূতন দল',mapsLink:'',placeName:'Behala Nutan Dal, Kolkata',lat:22.4988,lng:88.3180,crowd:4,theme:'Sculptural',queueMin:26,arsalanId:'a3'},
+     ]},
+  ]
+};
+
+let data, activeZoneId, editTarget;
+
+function getStored(){return JSON.parse(localStorage.getItem('pujoAdminData')||'null');}
+function saveData(){localStorage.setItem('pujoAdminData',JSON.stringify(data));showSaved();}
+function showSaved(){const el=document.getElementById('saved-label');el.style.display='block';setTimeout(()=>el.style.display='none',2000);}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function getPassword(){return localStorage.getItem('pujoAdminPw')||'pujo2025';}
+function tryLogin(){
+  const v=document.getElementById('pw-input').value;
+  if(v===getPassword()){document.getElementById('login').style.display='none';document.getElementById('app').style.display='flex';initApp();}
+  else{document.getElementById('pw-err').textContent='Incorrect password';}
+}
+function logout(){document.getElementById('login').style.display='flex';document.getElementById('app').style.display='none';document.getElementById('pw-input').value='';}
+function changePassword(){
+  const np=prompt('New password (min 6 chars):');
+  if(np&&np.length>=6){localStorage.setItem('pujoAdminPw',np);alert('Password updated.');}
+  else if(np)alert('Too short.');
+}
+
+// ── App init ──────────────────────────────────────────────────────────────────
+function initApp(){
+  data=getStored()||JSON.parse(JSON.stringify(DEFAULT_DATA));
+  activeZoneId=data.zones[0]?.id;
+  renderSidebar();renderContent();
+}
+
+function renderSidebar(){
+  const list=document.getElementById('zone-list');
+  list.innerHTML=data.zones.map(z=>`
+    <button class="zone-tab ${z.id===activeZoneId?'active':''}" onclick="selectZone('${z.id}')">
+      <span class="zone-dot" style="background:${z.color||'#E9C15B'}"></span>${z.name}
+    </button>`).join('');
+}
+
+function selectZone(id){activeZoneId=id;renderSidebar();renderContent();}
+
+// ── Content ───────────────────────────────────────────────────────────────────
+function renderContent(){
+  const zone=data.zones.find(z=>z.id===activeZoneId);
+  if(!zone){document.getElementById('content').innerHTML='<p class="muted" style="margin-top:40px;text-align:center">Select a zone</p>';return;}
+  document.getElementById('content').innerHTML=`
+<div style="padding-bottom:80px">
+  <div class="section-header">
+    <div><h2>${zone.name}</h2><p class="muted">Manage Arsalan outlets and pandals for this zone</p></div>
+    <button class="btn-danger" onclick="deleteZone('${zone.id}')">Delete zone</button>
+  </div>
+
+  <div class="zone-name-row">
+    <div class="field"><label>Zone name (English)</label><input value="${zone.name}" oninput="updateZoneName('${zone.id}','name',this.value)"></div>
+    <div class="field"><label>Zone name (Bengali)</label><input value="${zone.nameBn||''}" oninput="updateZoneName('${zone.id}','nameBn',this.value)"></div>
+    <div class="field" style="flex:0 0 120px"><label>Accent colour</label><input type="color" value="${zone.color||'#E9C15B'}" oninput="updateZoneName('${zone.id}','color',this.value)" style="height:44px;padding:4px 8px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>🍲 Arsalan Outlets</h3>
+      <button class="btn-sm" onclick="openModal('arsalan','${zone.id}',null)">+ Add outlet</button>
+    </div>
+    ${zone.arsalan.length?zone.arsalan.map(a=>`
+    <div class="item-row">
+      <div class="item-info">
+        <div class="item-name">${a.name}</div>
+        <div class="item-sub" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">
+          <span class="plus-badge">${a.placeName||'No place name set'}</span>
+          <span>${a.openHours||''}</span>
+          ${a.waitMin?`<span>~${a.waitMin} min wait</span>`:''}
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-ghost" onclick="testMaps('${(a.mapsLink||'').replace(/'/g,'%27')}')">Test in Maps</button>
+        <button class="btn-sm" onclick="openModal('arsalan','${zone.id}','${a.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteItem('arsalan','${zone.id}','${a.id}')">✕</button>
+      </div>
+    </div>`).join(''):`<div class="empty-row">No outlets yet — add one above</div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>🏮 Pandals (${zone.pandals.length})</h3>
+      <button class="btn-sm" onclick="openModal('pandal','${zone.id}',null)">+ Add pandal</button>
+    </div>
+    ${zone.pandals.length?zone.pandals.map((p,i)=>`
+    <div class="item-row">
+      <div style="width:28px;height:28px;border-radius:8px;background:rgba(233,193,91,.12);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#E9C15B;flex-shrink:0">${i+1}</div>
+      <div class="item-info">
+        <div class="item-name">${p.name} <span style="color:rgba(255,255,255,.35);font-weight:400;font-size:12px">/ ${p.nameBn||''}</span></div>
+        <div class="item-sub" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">
+          <span class="plus-badge">${p.placeName||'No place name set'}</span>
+          <span>${p.theme||''}</span>
+          <span>Crowd: ${'●'.repeat(p.crowd||0)}${'○'.repeat(5-(p.crowd||0))}</span>
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-ghost" onclick="testMaps('${(p.mapsLink||'').replace(/'/g,'%27')}')">Test in Maps</button>
+        <button class="btn-sm" onclick="openModal('pandal','${zone.id}','${p.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteItem('pandal','${zone.id}','${p.id}')">✕</button>
+      </div>
+    </div>`).join(''):`<div class="empty-row">No pandals yet — add one above</div>`}
+  </div>
+</div>`;
+}
+
+function updateZoneName(zoneId,field,val){const z=data.zones.find(z=>z.id===zoneId);if(z)z[field]=val;}
+
+// ── CRUD ──────────────────────────────────────────────────────────────────────
+function addZone(){
+  const name=prompt('Zone name (e.g. Central Kolkata):');
+  if(!name)return;
+  const id='zone_'+Date.now();
+  data.zones.push({id,name,nameBn:'',color:'#E9C15B',arsalan:[],pandals:[]});
+  activeZoneId=id;renderSidebar();renderContent();
+}
+
+function deleteZone(id){
+  if(!confirm('Delete this zone and all its data?'))return;
+  data.zones=data.zones.filter(z=>z.id!==id);
+  activeZoneId=data.zones[0]?.id;renderSidebar();renderContent();
+}
+
+function deleteItem(type,zoneId,itemId){
+  if(!confirm('Delete this item?'))return;
+  const zone=data.zones.find(z=>z.id===zoneId);
+  if(!zone)return;
+  if(type==='arsalan')zone.arsalan=zone.arsalan.filter(a=>a.id!==itemId);
+  else zone.pandals=zone.pandals.filter(p=>p.id!==itemId);
+  renderContent();
+}
+
+function testMaps(link){
+  if(!link||link===''){alert('No Maps link set — add a Google Maps share link first.');return;}
+  window.open(link,'_blank');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(type,zoneId,itemId){
+  editTarget={type,zoneId,itemId};
+  const zone=data.zones.find(z=>z.id===zoneId);
+  const item=itemId?(type==='arsalan'?zone.arsalan.find(a=>a.id===itemId):zone.pandals.find(p=>p.id===itemId)):null;
+  const title=item?(type==='arsalan'?'Edit Arsalan Outlet':'Edit Pandal'):(type==='arsalan'?'Add Arsalan Outlet':'Add Pandal');
+
+  const crowdBtns=[1,2,3,4,5].map(n=>`<button class="crowd-btn ${(item?.crowd||3)===n?'active':''}" onclick="setCrowd(${n})" id="crowd${n}">${n}</button>`).join('');
+  const arsalanOptions=zone.arsalan.map(a=>`<option value="${a.id}" ${item?.arsalanId===a.id?'selected':''}>${a.shortName||a.name}</option>`).join('');
+
+  const apiKey=localStorage.getItem('pujoApiKey')||'';
+  const fetchRow=apiKey?'<button class="btn-fetch" onclick="fetchPlace()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#4285f4" stroke-width="1.8"/><path d="M16.5 16.5L21 21" stroke="#4285f4" stroke-width="1.8" stroke-linecap="round"/></svg>Fetch from Google</button><div class="fetch-status" id="fetch-status"></div>':'<div class="hint" style="margin-bottom:10px">Add a Google Places API key in Settings to auto-fill details from Google Maps.</div>';
+  const body=type==='arsalan'?`
+    <div class="field"><label>Place name (exact, as on Google Maps)</label><div style="display:flex;gap:8px;align-items:flex-start"><input id="f-name" value="${item?.name||''}" placeholder="e.g. Arsalan Restaurant & Caterer - Park Circus" style="flex:1">${fetchRow}</div><div class="hint">This name is used in Google Maps routing — must match exactly</div></div>
+    <div class="field"><label>Short name (used in app)</label><input id="f-short" value="${item?.shortName||''}" placeholder="e.g. Park Circus"></div>
+    <div class="field"><label>Google Maps share link</label><input id="f-mapslink" value="${item?.mapsLink||''}" placeholder="https://maps.app.goo.gl/..."><div class="hint">Paste the share link from Google Maps for verification</div></div>
+    <div style="display:flex;gap:12px">
+      <div class="field" style="flex:1"><label>Rating (auto-filled)</label><input id="f-rating" value="${item?.rating||''}" placeholder="e.g. 4.2"></div>
+      <div class="field" style="flex:1"><label>Avg wait (min)</label><input id="f-wait" type="number" value="${item?.waitMin||20}"></div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="field" style="flex:1"><label>Open hours</label><input id="f-hours" value="${item?.openHours||'open till 2 am'}"></div>
+      <div class="field" style="flex:1"><label>Currently open</label><input id="f-opennow" value="${item?.openNow||''}" placeholder="auto-filled"></div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="field" style="flex:1"><label>Latitude</label><input id="f-lat" type="number" step="0.0001" value="${item?.lat||''}"></div>
+      <div class="field" style="flex:1"><label>Longitude</label><input id="f-lng" type="number" step="0.0001" value="${item?.lng||''}"></div>
+    </div>`:`
+    <div style="display:flex;gap:12px;align-items:flex-end">
+      <div class="field" style="flex:1"><label>Pandal name (English)</label><input id="f-name" value="${item?.name||''}"></div>
+      <div style="padding-bottom:16px">${fetchRow}</div>
+    </div>
+    <div class="field"><label>Name in Bengali</label><input id="f-nameBn" value="${item?.nameBn||''}"></div>
+    <div class="field"><label>Google Maps share link</label><input id="f-mapslink" value="${item?.mapsLink||''}" placeholder="https://maps.app.goo.gl/..."><div class="hint">Paste the share link from Google Maps for verification</div></div>
+    <div style="display:flex;gap:12px">
+      <div class="field" style="flex:1"><label>Rating (auto-filled)</label><input id="f-rating" value="${item?.rating||''}" placeholder="auto-filled"></div>
+      <div class="field" style="flex:1"><label>Photo URL (auto-filled)</label><input id="f-photo" value="${item?.photoUrl||''}" placeholder="auto-filled"></div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="field" style="flex:1"><label>Latitude</label><input id="f-lat" type="number" step="0.0001" value="${item?.lat||''}"></div>
+      <div class="field" style="flex:1"><label>Longitude</label><input id="f-lng" type="number" step="0.0001" value="${item?.lng||''}"></div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div class="field" style="flex:1"><label>Theme / Description</label><input id="f-theme" value="${item?.theme||''}"></div>
+      <div class="field" style="flex:1"><label>Queue time (min)</label><input id="f-queue" type="number" value="${item?.queueMin||20}"></div>
+    </div>
+    <div class="field"><label>Crowd level</label><div class="crowd-row">${crowdBtns}</div></div>
+    <div class="field"><label>Nearest Arsalan outlet</label><select id="f-arsalan">${arsalanOptions}</select></div>`;
+
+  const modal=document.createElement('div');
+  modal.className='modal-bg';
+  modal.id='modal';
+  modal.innerHTML=`<div class="modal"><h2>${title}</h2>${body}<div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-gold" style="width:auto;padding:11px 24px;margin:0;font-size:14px" onclick="saveModal()">Save</button></div></div>`;
+  document.body.appendChild(modal);
+}
+
+let selectedCrowd=3;
+function setCrowd(n){
+  selectedCrowd=n;
+  [1,2,3,4,5].forEach(i=>{const b=document.getElementById('crowd'+i);if(b)b.className='crowd-btn'+(i===n?' active':'');});
+}
+function closeModal(){document.getElementById('modal')?.remove();}
+
+function saveModal(){
+  const {type,zoneId,itemId}=editTarget;
+  const zone=data.zones.find(z=>z.id===zoneId);
+  const g=id=>document.getElementById(id);
+  const v=id=>g(id)?.value||'';
+  const n=id=>parseFloat(g(id)?.value)||0;
+
+  if(type==='arsalan'){
+    const obj={id:itemId||'a'+Date.now(),name:v('f-name'),shortName:v('f-short'),mapsLink:v('f-mapslink'),rating:v('f-rating'),openHours:v('f-hours'),openNow:v('f-opennow'),lat:n('f-lat'),lng:n('f-lng'),waitMin:parseInt(v('f-wait'))||20};
+    if(itemId){const i=zone.arsalan.findIndex(a=>a.id===itemId);zone.arsalan[i]=obj;}
+    else zone.arsalan.push(obj);
+  } else {
+    const crowdEl=document.querySelector('.crowd-btn.active');
+    const crowd=crowdEl?parseInt(crowdEl.textContent):3;
+    const obj={id:itemId||'p'+Date.now(),name:v('f-name'),nameBn:v('f-nameBn'),mapsLink:v('f-mapslink'),rating:v('f-rating'),photoUrl:v('f-photo'),lat:n('f-lat'),lng:n('f-lng'),theme:v('f-theme'),queueMin:parseInt(v('f-queue'))||20,crowd,arsalanId:v('f-arsalan')};
+    if(itemId){const i=zone.pandals.findIndex(p=>p.id===itemId);zone.pandals[i]=obj;}
+    else zone.pandals.push(obj);
+  }
+  closeModal();renderContent();
+}
+
+// ── Import / Export ───────────────────────────────────────────────────────────
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pujo-data.json';a.click();
+}
+function importData(){
+  const input=document.createElement('input');input.type='file';input.accept='.json';
+  input.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{data=JSON.parse(ev.target.result);activeZoneId=data.zones[0]?.id;renderSidebar();renderContent();alert('Imported!');}catch{alert('Invalid JSON');}};r.readAsText(f);};
+  input.click();
+}
+
+// ── Google Places API fetch ───────────────────────────────────────────────────
+async function fetchPlace(){
+  const apiKey=localStorage.getItem('pujoApiKey')||'';
+  if(!apiKey){alert('Add your Google Places API key in Settings first.');return;}
+  const name=document.getElementById('f-name')?.value||'';
+  if(!name.trim()){alert('Enter a place name first.');return;}
+  const status=document.getElementById('fetch-status');
+  if(status)status.textContent='Searching…';
+  try{
+    const res=await fetch('https://places.googleapis.com/v1/places:searchText',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':apiKey,'X-Goog-FieldMask':'places.id,places.displayName,places.formattedAddress,places.rating,places.currentOpeningHours,places.regularOpeningHours,places.location,places.photos'},
+      body:JSON.stringify({textQuery:name+' Kolkata'})
+    });
+    const d=await res.json();
+    if(d.error){if(status)status.innerHTML='<span style="color:#ff6b6b">Error: '+d.error.message+'</span>';return;}
+    const p=d.places?.[0];
+    if(!p){if(status)status.innerHTML='<span style="color:#ff6b6b">No results found</span>';return;}
+    // Auto-fill fields
+    if(document.getElementById('f-name'))document.getElementById('f-name').value=p.displayName?.text||name;
+    if(document.getElementById('f-rating'))document.getElementById('f-rating').value=p.rating||'';
+    if(document.getElementById('f-lat')&&p.location)document.getElementById('f-lat').value=p.location.latitude||'';
+    if(document.getElementById('f-lng')&&p.location)document.getElementById('f-lng').value=p.location.longitude||'';
+    if(document.getElementById('f-opennow')&&p.currentOpeningHours)document.getElementById('f-opennow').value=p.currentOpeningHours.openNow?'Open now':'Closed';
+    // Open hours summary
+    const periods=p.regularOpeningHours?.weekdayDescriptions;
+    if(document.getElementById('f-hours')&&periods?.length)document.getElementById('f-hours').value=periods[0].split(': ')[1]||'';
+    // Photo
+    const photo=p.photos?.[0];
+    if(photo&&document.getElementById('f-photo')){
+      const photoUrl='https://places.googleapis.com/v1/'+photo.name+'/media?maxHeightPx=400&key='+apiKey;
+      document.getElementById('f-photo').value=photoUrl;
+    }
+    if(status)status.innerHTML='<span style="color:#4caf50">✓ Filled from Google — '+p.formattedAddress+'</span>';
+  }catch(e){if(status)status.innerHTML='<span style="color:#ff6b6b">Fetch failed: '+e.message+'</span>';}
+}
+
+function showSettings(){
+  document.getElementById('content').innerHTML=`
+<div style="padding-bottom:80px">
+  <div class="section-header"><div><h2>Settings</h2><p class="muted">App configuration</p></div></div>
+  <div class="card">
+    <div class="card-header"><h3>Google Places API</h3></div>
+    <div class="item-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <p style="font-size:13px;color:rgba(255,255,255,.5)">Add your API key to auto-fetch place names, ratings, coordinates and photos from Google Maps. Get one at <a href="https://console.cloud.google.com" target="_blank" style="color:#4285f4">console.cloud.google.com</a> → Enable "Places API (New)".</p>
+      <div style="display:flex;gap:10px;width:100%">
+        <input id="api-key-input" value="${localStorage.getItem('pujoApiKey')||''}" placeholder="AIza..." style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;font-size:14px;color:#f0eeec;outline:none;font-family:monospace">
+        <button class="btn-sm" onclick="localStorage.setItem('pujoApiKey',document.getElementById('api-key-input').value);alert('Saved!')">Save key</button>
+        <button class="btn-danger" onclick="localStorage.removeItem('pujoApiKey');document.getElementById('api-key-input').value='';alert('Removed.')">Remove</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Data</h3></div>
+    <div class="item-row" style="flex-direction:column;align-items:flex-start;gap:12px">
+      <p style="font-size:13px;color:rgba(255,255,255,.5)">The app reads <code style="background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px">pujoAdminData</code> from localStorage. Save here, then reload the app to see changes.</p>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm" onclick="exportData()">Export JSON backup</button>
+        <button class="btn-danger" onclick="if(confirm('Reset to defaults?')){data=JSON.parse(JSON.stringify(DEFAULT_DATA));renderSidebar();selectZone(data.zones[0].id);}">Reset to defaults</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+</script>
+</body>
+</html>

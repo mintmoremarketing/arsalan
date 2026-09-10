@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus Jakarta Sans:wght@400;500;600;700;800;900&amp;family=Noto+Serif+Bengali:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0f1117;display:flex;align-items:flex-start;justify-content:center;padding:24px 0 40px;min-height:100vh;font-family:'Plus Jakarta Sans',sans-serif}
+@media(min-width:1024px){body{padding:0;background:#0a0a0a;align-items:stretch;height:100vh;overflow:hidden}}
+*{box-sizing:border-box}
+@keyframes dotPulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(3.2);opacity:0}}
+@keyframes sheetUp{from{transform:translateY(110%)}to{transform:translateY(0)}}
+@keyframes sheetDown{from{transform:translateY(0)}to{transform:translateY(115%)}}
+@keyframes flowGold{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.leaflet-control-attribution,.leaflet-control-zoom{display:none!important}
+::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+
+<sc-if value="{{ isMobile }}" hint-placeholder-val="{{ true }}">
+<div style="transform:scale(0.78);transform-origin:top center;width:402px;height:682px;flex-shrink:0">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+<div style="position:absolute;inset:0;overflow:hidden;background:#111111;font-family:'Plus Jakarta Sans',sans-serif;color:#f0eeec">
+
+  <!-- ===================== MAP SCREEN ===================== -->
+  <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:5">
+
+    <!-- Full-screen map -->
+    <div ref="{{ mapRef }}" style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:#111111"></div>
+
+    <!-- Live dot -->
+    <div style="position:absolute;top:50%;left:45%;transform:translate(-50%,-50%);pointer-events:none;z-index:900">
+      <div style="position:relative;width:48px;height:48px;margin:-24px">
+        <div style="position:absolute;inset:0;border-radius:50%;background:rgba(66,133,244,.3);animation:dotPulse 2.2s ease-out infinite"></div>
+        <div style="position:absolute;inset:8px;border-radius:50%;background:rgba(66,133,244,.2);animation:dotPulse 2.2s ease-out .7s infinite"></div>
+        <div style="position:absolute;inset:15px;border-radius:50%;background:#4285f4;border:2.5px solid #fff;box-shadow:0 2px 10px rgba(66,133,244,.7)"></div>
+      </div>
+    </div>
+
+    <!-- Top controls -->
+    <div style="position:absolute;top:68px;left:14px;right:14px;z-index:900;display:flex;gap:8px">
+      <button style="flex:1;display:flex;align-items:center;gap:10px;background:rgba(12,12,12,.88);backdrop-filter:blur(16px);border-radius:14px;padding:10px 14px;border:1px solid rgba(255,255,255,.08);cursor:pointer;text-align:left" onClick="{{ goSearch }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="rgba(255,255,255,.4)" stroke-width="1.9"></circle><path d="M16.5 16.5L21 21" stroke="rgba(255,255,255,.4)" stroke-width="1.9" stroke-linecap="round"></path></svg>
+        <span style="font-size:13px;color:rgba(255,255,255,.35);font-weight:500">{{ txt.searchPH }}</span>
+      </button>
+      <button style="width:42px;height:42px;border-radius:12px;background:rgba(12,12,12,.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);cursor:pointer;display:flex;align-items:center;justify-content:center" onClick="{{ toggleLang }}">
+        <span style="font-size:11px;font-weight:700;color:{{ langColor }}">{{ langLabel }}</span>
+      </button>
+      <button style="width:42px;height:42px;border-radius:12px;background:rgba(12,12,12,.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);cursor:pointer;display:flex;align-items:center;justify-content:center" onClick="{{ recenter }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#4285f4" stroke-width="1.8" fill="#4285f4" fill-opacity=".2"></circle><path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#4285f4" stroke-width="1.9" stroke-linecap="round"></path></svg>
+      </button>
+    </div>
+
+    <!-- Zone pills -->
+    <div style="position:absolute;top:122px;left:14px;z-index:900;display:flex;gap:6px">
+      <sc-for list="{{ zones }}" as="z" hint-placeholder-count="3">
+      <button style="padding:5px 12px;border-radius:20px;border:0;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;background:{{ z.bg }};color:{{ z.fg }}" onClick="{{ z.tap }}">{{ z.label }}</button>
+      </sc-for>
+      <div style="padding:5px 10px;background:rgba(12,12,12,.8);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:11px;font-weight:600;color:rgba(255,255,255,.5)">{{ zonePandals }} {{ txt.pandals }}</div>
+    </div>
+
+    <!-- Bottom overlay: gradient + Arsalan + cards -->
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:900;background:linear-gradient(to top,#111111 10%,rgba(15,15,15,.97) 55%,rgba(15,15,15,.5) 80%,transparent 100%);padding-top:32px;padding-bottom:92px">
+      <!-- Arsalan bar -->
+      <button style="display:flex;align-items:center;justify-content:center;gap:12px;margin:0 auto 10px;padding:13px 20px;background:rgba(10,10,10,.88);backdrop-filter:blur(16px);border-radius:16px;border:1px solid rgba(233,193,91,.35);cursor:pointer" onClick="{{ goArsalan }}">
+        <img src="./uploads/download.png" style="width:36px;height:36px;object-fit:contain;filter:invert(1) hue-rotate(180deg) brightness(1.4) saturate(1.3);flex-shrink:0">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#E9C15B">{{ txt.nearest }}</div>
+          <div style="font-size:14px;font-weight:700;color:#f0eeec;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Arsalan {{ nearArsalan }} · {{ nearKm }} km · {{ nearMin }} {{ txt.min }}</div>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#E9C15B" opacity="0.3"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#E9C15B" stroke-width="1.7" stroke-linejoin="round"></path></svg>
+      </button>
+      <!-- Card rail -->
+      <div style="display:flex;gap:12px;padding:0 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scroll-padding:0 14px">
+        <sc-for list="{{ cardPandals }}" as="c" hint-placeholder-count="0">
+        <div style="flex:none;width:220px;background:rgba(255,255,255,.07);border-radius:18px;border:1px solid rgba(255,255,255,.08);overflow:hidden;cursor:pointer;scroll-snap-align:center" onClick="{{ c.tap }}">
+          <div style="height:120px;position:relative;overflow:hidden;background:#1a1a1a">
+            <sc-if value="{{ c.displayName }}" hint-placeholder-val="{{ false }}"><img src="{{ c.imgUrl }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if>
+            <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.05),rgba(0,0,0,.4))"></div>
+            <div style="position:absolute;top:9px;right:9px;width:26px;height:26px;border-radius:8px;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font:700 12px/1 'Plus Jakarta Sans',sans-serif;color:#fff">{{ c.num }}</div>
+            <sc-if value="{{ c.showCrowd }}" hint-placeholder-val="{{ true }}">
+            <span style="position:absolute;bottom:10px;left:10px;padding:3px 9px;border-radius:20px;background:rgba(0,0,0,.5);font-size:10px;font-weight:600;color:#fff">{{ c.crowdWord }}</span>
+            </sc-if>
+          </div>
+          <div style="padding:10px 12px 12px">
+            <div style="font-size:14px;font-weight:700;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.displayName }}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.38);margin-top:3px;font-weight:400">{{ c.dist }} · {{ c.theme }}</div>
+          </div>
+        </div>
+        </sc-for>
+        <div style="flex:none;width:160px;background:linear-gradient(135deg,rgba(233,193,91,.18),rgba(184,150,61,.25));border-radius:18px;border:1px solid rgba(233,193,91,.28);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;scroll-snap-align:center" onClick="{{ goPlanner }}">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#E9C15B" stroke-width="1.6"></circle><path d="M12 6v6l4 2" stroke="#E9C15B" stroke-width="1.8" stroke-linecap="round"></path></svg>
+          <div style="font-size:13px;font-weight:700;color:#f0eeec;text-align:center;line-height:1.3">{{ txt.plannerCTA }}</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </sc-if>
+
+  <!-- ===================== HOME / CRAWL SCREEN ===================== -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:10;background:#111111;display:flex;flex-direction:column">
+    <div style="padding:70px 20px 0;flex:none">
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#E9C15B;margin-bottom:6px">{{ txt.tonight }}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:18px">
+        <h1 style="font-size:29px;font-weight:900;margin:0;line-height:1.1;color:#f0eeec">{{ txt.homeTitle }}</h1>
+        <button style="flex-shrink:0;margin-top:4px;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.15);background:transparent;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:900;color:{{ langColor }}" onClick="{{ toggleLang }}">{{ langLabel }}</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <sc-for list="{{ zones }}" as="z" hint-placeholder-count="3">
+        <button style="flex:1;padding:13px 8px 12px;border-radius:14px;border:0;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;background:{{ z.cardBg }};border:1.5px solid {{ z.bd }}" onClick="{{ z.tap }}">
+          <div style="font-size:26px;font-weight:900;color:{{ z.numFg }}">{{ z.count }}</div>
+          <div style="font-size:11px;font-weight:800;color:{{ z.fg }};margin-top:4px;letter-spacing:.04em">{{ z.label }}</div>
+        </button>
+        </sc-for>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:8px;font-weight:600">{{ txt.countLine }}</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 20px 0">
+      <sc-for list="{{ plan }}" as="s" hint-placeholder-count="7">
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer" onClick="{{ s.tap }}">
+        <div style="width:42px;height:42px;flex:none;border-radius:13px;background:{{ s.iconBg }};display:flex;align-items:center;justify-content:center">
+          {{ s.icon }}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:800;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.displayName }}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+            <span style="font-size:12px;color:rgba(255,255,255,.38)">{{ s.dist }}</span>
+            <sc-if value="{{ s.crowdDots }}" hint-placeholder-val="{{ false }}">
+            <span style="display:flex;gap:2px;align-items:flex-end;height:14px">
+              <sc-for list="{{ s.bars }}" as="b" hint-placeholder-count="5">
+              <span style="width:3px;border-radius:1px;background:{{ b.c }};height:{{ b.h }}"></span>
+              </sc-for>
+            </span>
+            </sc-if>
+          </div>
+        </div>
+        <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="rgba(255,255,255,.18)" stroke-width="2" stroke-linecap="round"></path></svg>
+      </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:8px;padding:12px 20px 18px;flex:none">
+      <button style="flex:1;min-height:48px;border-radius:14px;border:1.5px solid rgba(255,255,255,.12);background:transparent;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:rgba(255,255,255,.6)" onClick="{{ goPlanner }}">{{ txt.plannerCTA }}</button>
+      <button style="flex:1;min-height:48px;border-radius:14px;border:0;background:#E9C15B;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:900;color:#111;" onClick="{{ goMap }}">{{ txt.openMap }}</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== DAY PLANNER ===================== -->
+  <sc-if value="{{ isPlanner }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:10;background:#111;display:flex;flex-direction:column;animation:fadeIn .2s ease">
+
+    <!-- Header -->
+    <div style="flex:none;padding:62px 20px 16px;background:#111">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <button style="width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.06);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center" onClick="{{ back }}">
+          <svg width="10" height="17" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke="#f0eeec" stroke-width="2.2" stroke-linecap="round"></path></svg>
+        </button>
+        <h2 style="font-size:22px;font-weight:800;margin:0;color:#f0eeec">{{ txt.plannerTitle }}</h2>
+      </div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:16px">
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <!-- Start time -->
+          <div style="flex:1">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px">{{ txt.startTime }}</div>
+            <div style="display:flex;align-items:center;gap:5px">
+              <!-- Hour drum -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                <button onClick="{{ incStartH }}" onWheel="{{ onHourWheel }}" style="width:34px;height:22px;border:0;background:rgba(255,255,255,.07);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+                <div onWheel="{{ onHourWheel }}" style="font-size:32px;font-weight:800;color:#f0eeec;line-height:1;min-width:34px;text-align:center;cursor:ns-resize;letter-spacing:-.02em">{{ h12 }}</div>
+                <button onClick="{{ decStartH }}" style="width:34px;height:22px;border:0;background:rgba(255,255,255,.07);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              </div>
+              <span style="font-size:28px;font-weight:800;color:#E9C15B;line-height:1;align-self:center">:</span>
+              <!-- Min tens drum -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                <button onClick="{{ incMinTens }}" onWheel="{{ onMinTensWheel }}" style="width:28px;height:22px;border:0;background:rgba(255,255,255,.07);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+                <div onWheel="{{ onMinTensWheel }}" style="font-size:32px;font-weight:800;color:#f0eeec;line-height:1;min-width:20px;text-align:center;cursor:ns-resize;letter-spacing:-.02em">{{ minTens }}</div>
+                <button onClick="{{ decMinTens }}" style="width:28px;height:22px;border:0;background:rgba(255,255,255,.07);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              </div>
+              <!-- Min units drum -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+                <button onClick="{{ incMinUnits }}" onWheel="{{ onMinUnitsWheel }}" style="width:28px;height:22px;border:0;background:rgba(255,255,255,.07);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+                <div onWheel="{{ onMinUnitsWheel }}" style="font-size:32px;font-weight:800;color:#f0eeec;line-height:1;min-width:20px;text-align:center;cursor:ns-resize;letter-spacing:-.02em">{{ minUnits }}</div>
+                <button onClick="{{ decMinUnits }}" style="width:28px;height:22px;border:0;background:rgba(255,255,255,.07);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              </div>
+              <!-- AM/PM -->
+              <div style="display:flex;flex-direction:column;gap:4px;margin-left:2px;align-self:center">
+                <button onClick="{{ setAM }}" style="padding:5px 8px;border-radius:8px;border:0;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;background:{{ amBg }};color:{{ amFg }}">AM</button>
+                <button onClick="{{ setPM }}" style="padding:5px 8px;border-radius:8px;border:0;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:10px;font-weight:700;background:{{ pmBg }};color:{{ pmFg }}">PM</button>
+              </div>
+            </div>
+          </div>
+          <div style="width:1px;background:rgba(255,255,255,.07);align-self:stretch"></div>
+          <!-- Duration -->
+          <div style="flex:0 0 auto;min-width:76px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:12px">{{ txt.duration }}</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <button onClick="{{ incDur }}" style="width:44px;height:22px;border:0;background:rgba(233,193,91,.15);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="#E9C15B" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              <div style="font-size:28px;font-weight:800;color:#f0eeec;line-height:1;text-align:center;letter-spacing:-.02em">{{ durDisplayBig }}</div>
+              <button onClick="{{ decDur }}" style="width:44px;height:22px;border:0;background:rgba(255,255,255,.07);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stop cards -->
+    <div style="flex:1;overflow-y:auto;padding:8px 20px 8px">
+      <sc-for list="{{ plannerStops }}" as="ps" hint-placeholder-count="5">
+      <div style="margin-bottom:8px">
+        <div style="background:{{ ps.cardBg }};border:1px solid {{ ps.cardBd }};border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:{{ ps.dotBd }};border-radius:18px 0 0 18px"></div>
+          <div style="width:44px;height:44px;flex:none;border-radius:13px;background:{{ ps.dotBg }};display:flex;align-items:center;justify-content:center">{{ ps.dotIcon }}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:700;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ps.name }}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.32);margin-top:2px;font-weight:400">{{ ps.detail }}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:13px;font-weight:700;color:{{ ps.timeColor }}">{{ ps.time }}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.22);margin-top:1px">{{ ps.dur }}</div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+
+    <!-- Sticky bottom -->
+    <div style="flex:none;background:#111;border-top:1px solid rgba(255,255,255,.05);padding:12px 20px 88px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:11.5px;font-weight:500;color:rgba(255,255,255,.3)">{{ txt.wrapUp }}</span>
+        <span style="font-size:13px;font-weight:700;color:#E9C15B">{{ plannerSummary }}</span>
+      </div>
+      <button style="width:100%;min-height:52px;border-radius:14px;border:0;background:linear-gradient(90deg,#E9C15B,#d4a843,#f5d070,#E9C15B);background-size:200% 100%;animation:flowGold 2.5s linear infinite;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:#111;display:flex;align-items:center;justify-content:center;gap:8px" onClick="{{ launchTrip }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#111" opacity=".3"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#111 stroke-width="1.7" stroke-linejoin="round"></path></svg>
+        {{ txt.openFullTrip }}
+      </button>
+    </div>
+
+  </div>
+  </sc-if>
+
+  <!-- ===================== SEARCH ===================== -->
+  <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:10;background:#111111;display:flex;flex-direction:column;animation:fadeIn .18s ease">
+    <div style="padding:70px 20px 0;flex:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+        <button style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.07);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center" onClick="{{ back }}">
+          <svg width="10" height="17" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke="#f0eeec" stroke-width="2.2" stroke-linecap="round"></path></svg>
+        </button>
+        <h2 style="font-size:24px;font-weight:900;margin:0;color:#f0eeec">{{ txt.findTitle }}</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border-radius:13px;padding:12px 16px;margin-bottom:14px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="rgba(255,255,255,.35)" stroke-width="1.9"></circle><path d="M16.5 16.5L21 21" stroke="rgba(255,255,255,.35)" stroke-width="1.9" stroke-linecap="round"></path></svg>
+        <input style="flex:1;background:transparent;border:0;outline:0;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#f0eeec" placeholder="{{ txt.searchPH }}" value="{{ q }}" onInput="{{ onQ }}">
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">
+        <sc-for list="{{ filterChips }}" as="c" hint-placeholder-count="4">
+        <button style="padding:6px 13px;border-radius:20px;border:1.5px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:800;cursor:pointer">{{ c.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 20px 20px">
+      <sc-for list="{{ searchResults }}" as="r" hint-placeholder-count="8">
+      <button style="display:flex;width:100%;gap:12px;align-items:center;padding:12px 0;background:transparent;border:0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;text-align:left" onClick="{{ r.tap }}">
+        <div style="width:42px;height:42px;flex:none;border-radius:13px;background:rgba(233,193,91,.14);display:flex;align-items:center;justify-content:center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2a7 7 0 0 1 7 7c0 4.5-7 13-7 13S5 13.5 5 9a7 7 0 0 1 7-7z" fill="#E9C15B" opacity=".25"></path><path d="M12 2a7 7 0 0 1 7 7c0 4.5-7 13-7 13S5 13.5 5 9a7 7 0 0 1 7-7z" stroke="#E9C15B" stroke-width="1.8"></path><circle cx="12" cy="9" r="2.5" fill="#E9C15B"></circle></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:800;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.displayName }}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.38);margin-top:3px">{{ r.zLabel }} · {{ r.crowdWord }}</div>
+        </div>
+        <div style="font-size:13px;font-weight:800;color:#E9C15B;flex-shrink:0">{{ r.km }} km</div>
+      </button>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== PANDAL DETAIL ===================== -->
+  <sc-if value="{{ isPandal }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:20;animation:fadeIn .15s ease">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onClick="{{ closePandal }}"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:#191919;border-radius:24px 24px 0 0;padding:0 0 36px;animation:{{ pandalAnim }}">
+      <div style="width:38px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:14px auto 20px"></div>
+      <div style="padding:0 22px">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">
+          <div style="flex:1">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#E9C15B;margin-bottom:5px">{{ sel.zLabel }}</div>
+            <h2 style="font-size:27px;font-weight:900;margin:0;line-height:1.1;color:#f0eeec">{{ sel.displayName }}</h2>
+          </div>
+          <button style="width:36px;height:36px;flex:none;border-radius:10px;background:rgba(255,255,255,.07);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center" onClick="{{ closePandal }}">
+            <svg width="12" height="12" viewBox="0 0 18 18" fill="none"><path d="M2 2l14 14M16 2L2 16" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round"></path></svg>
+          </button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">
+          <sc-if value="{{ showCrowd }}" hint-placeholder-val="{{ true }}">
+          <span style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(233,193,91,.15);font-size:12px;font-weight:700;color:#E9C15B">
+            <span style="display:flex;gap:1.5px;align-items:flex-end;height:12px">
+              <sc-for list="{{ sel.bars }}" as="b" hint-placeholder-count="5">
+              <span style="width:3px;border-radius:1px;background:{{ b.c }};height:{{ b.h }}"></span>
+              </sc-for>
+            </span>
+            {{ sel.crowdWord }}
+          </span>
+          <span style="padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.07);font-size:12px;font-weight:700;color:rgba(255,255,255,.55)">{{ txt.queue }} ~{{ sel.queue }} {{ txt.min }}</span>
+          </sc-if>
+          <span style="padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.07);font-size:12px;font-weight:700;color:rgba(255,255,255,.55)">{{ sel.theme }}</span>
+        </div>
+        <div style="background:rgba(233,193,91,.1);border:1px solid rgba(233,193,91,.22);border-radius:16px;padding:16px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:40px;height:40px;flex:none;border-radius:12px;background:linear-gradient(135deg,#E9C15B,#b8963d);display:flex;align-items:center;justify-content:center">
+              <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><ellipse cx="16" cy="13" rx="10" ry="7" fill="rgba(255,255,255,.15)" stroke="#fff" stroke-width="1.5"></ellipse><path d="M7 15c0 6 3.6 10 9 10s9-4 9-10" fill="rgba(255,255,255,.1)" stroke="#fff" stroke-width="1.5"></path><rect x="14.5" y="24.5" width="3" height="5" rx="1.5" fill="#fff"></rect><path d="M6 13h-2a2 2 0 0 1 0-4h2M26 13h2a2 2 0 0 0 0-4h-2" stroke="#fff" stroke-width="1.5" stroke-linecap="round"></path></svg>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#E9C15B;margin-bottom:3px">{{ txt.nearest }}</div>
+              <div style="font-size:16px;font-weight:800;color:#f0eeec">Arsalan {{ sel.arsalan }}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">{{ sel.km }} km · {{ sel.min }} {{ txt.min }} {{ txt.byCar }} · {{ txt.openTill }}</div>
+            </div>
+            <div style="font-size:38px;font-weight:900;color:#E9C15B;line-height:1;flex-shrink:0">{{ sel.km }}</div>
+          </div>
+        </div>
+        <button style="width:100%;min-height:52px;border-radius:14px;border:0;background:#E9C15B;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:900;color:#111;;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px" onClick="{{ goRoute }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#111" opacity=".4"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#111 stroke-width="1.7" stroke-linejoin="round"></path></svg>
+          {{ txt.routeCTA }}
+        </button>
+        <button style="width:100%;min-height:46px;border-radius:14px;border:1.5px solid rgba(255,255,255,.12);background:transparent;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:rgba(255,255,255,.55)" onClick="{{ goArsalan }}">{{ txt.seeOutlet }}</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== ROUTE HANDOFF ===================== -->
+  <sc-if value="{{ isRoute }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:25;display:flex;flex-direction:column;animation:fadeIn .18s ease">
+    <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:40px 28px 36px">
+      <div style="position:absolute;inset:0;background-image:url({{ selArsalanPhoto }});background-size:cover;background-position:center"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.3) 50%,rgba(0,0,0,.15) 100%)"></div>
+      <div style="position:absolute;top:-80px;right:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.04)"></div>
+      <button style="position:absolute;top:70px;left:22px;width:38px;height:38px;border-radius:12px;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2" onClick="{{ back }}">
+        <svg width="10" height="17" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke="#fff" stroke-width="2.2" stroke-linecap="round"></path></svg>
+      </button>
+      <div style="position:relative">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:12px">{{ txt.handingOver }}</div>
+        <div style="font-size:100px;font-weight:900;color:#E9C15B;line-height:.9;letter-spacing:-.04em;text-shadow:0 4px 24px rgba(0,0,0,.5)">{{ sel.km }}</div>
+        <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,.65);margin-top:12px;letter-spacing:.06em;text-transform:uppercase">{{ txt.kmBiryani }}</div>
+      </div>
+    </div>
+    <div style="background:#191919;padding:24px 24px 36px;border-radius:24px 24px 0 0;margin-top:-20px">
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:18px;line-height:1.5">{{ sel.displayName }} <span style="color:rgba(255,255,255,.18)">→</span> <strong style="color:#f0eeec;font-weight:900">Arsalan {{ sel.arsalan }}</strong></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,.06);border-radius:14px;overflow:hidden;margin-bottom:20px">
+        <div style="background:#191919;padding:14px 12px"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)">{{ txt.distance }}</div><div style="font-size:22px;font-weight:900;color:#f0eeec;margin-top:5px">{{ sel.km }}<span style="font-size:12px;color:rgba(255,255,255,.35)"> km</span></div></div>
+        <div style="background:#191919;padding:14px 12px"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)">{{ txt.drive }}</div><div style="font-size:22px;font-weight:900;color:#f0eeec;margin-top:5px">{{ sel.min }}<span style="font-size:12px;color:rgba(255,255,255,.35)"> {{ txt.min }}</span></div></div>
+        <div style="background:#191919;padding:14px 12px"><div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)">{{ txt.tableWait }}</div><div style="font-size:22px;font-weight:900;color:#E9C15B;margin-top:5px">{{ sel.wait }}<span style="font-size:12px;color:rgba(255,255,255,.35)"> {{ txt.min }}</span></div></div>
+      </div>
+      <button style="width:100%;min-height:54px;border-radius:14px;border:0;background:#E9C15B;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:900;color:#111;;margin-bottom:10px" onClick="{{ handoff }}">{{ txt.openMaps }}</button>
+      <button style="width:100%;min-height:44px;border-radius:14px;border:1.5px solid rgba(255,255,255,.1);background:transparent;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:rgba(255,255,255,.4)" onClick="{{ back }}">{{ txt.cancel }}</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== ARSALAN OUTLET ===================== -->
+  <sc-if value="{{ isArsalan }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:20;animation:fadeIn .15s ease">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55)" onClick="{{ closeArsalan }}"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:#191919;border-radius:24px 24px 0 0;padding:0 0 110px;animation:{{ arsalanAnim }};max-height:90vh;overflow-y:auto">
+      <div style="width:38px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:14px auto 20px"></div>
+      <div style="padding:0 22px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div style="width:52px;height:52px;flex:none;border-radius:14px;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center">
+            <img src="./uploads/download.png" style="width:44px;height:44px;object-fit:contain;filter:invert(1) hue-rotate(180deg) brightness(1.4) saturate(1.3)">
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#E9C15B;margin-bottom:4px">{{ txt.theStop }}</div>
+            <h2 style="font-size:24px;font-weight:900;margin:0;color:#f0eeec">Arsalan {{ sel.arsalan }}</h2>
+            <div style="font-size:12px;color:rgba(255,255,255,.38);margin-top:2px">{{ sel.km }} km · {{ txt.openTill }}</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border-radius:16px;padding:18px;margin-bottom:18px">
+          <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:12px">
+            <div>
+              <div style="font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35)">{{ txt.tableWait }}</div>
+              <div style="font-size:56px;font-weight:900;color:#E9C15B;line-height:1;margin-top:4px">{{ sel.wait }}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.35)">{{ txt.minutes }}</div>
+            </div>
+            <div style="flex:1;display:flex;align-items:flex-end;gap:3px;height:52px">
+              <sc-for list="{{ waitBars }}" as="b" hint-placeholder-count="8">
+              <div style="flex:1;border-radius:3px 3px 0 0;background:{{ b.c }};height:{{ b.h }}"></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.06);padding-top:10px">
+            <div style="font-size:11px;color:rgba(255,255,255,.28)">{{ txt.crowdNow }}</div>
+            <div style="display:flex;align-items:center;gap:5px">
+              <div style="width:6px;height:6px;border-radius:50%;background:#4caf50;box-shadow:0 0 6px rgba(76,175,80,.8)"></div>
+              <div style="font-size:11px;font-weight:700;color:#4caf50">{{ liveUsers }} here now</div>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px">{{ txt.peopleOrder }}</div>
+        <sc-for list="{{ menu }}" as="m" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <span style="font-size:15px;font-weight:700;color:#f0eeec;flex:1">{{ m.n }}</span>
+          <span style="font-size:14px;font-weight:900;color:#E9C15B">{{ m.price }}</span>
+        </div>
+        </sc-for>
+        <button style="width:100%;min-height:52px;border-radius:14px;border:0;background:#E9C15B;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:900;color:#111;;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px" onClick="{{ goRoute }}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#111" opacity=".4"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#111 stroke-width="1.7" stroke-linejoin="round"></path></svg>
+          {{ txt.routeCTA }}
+        </button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ===================== FRIENDS ===================== -->
+  <sc-if value="{{ isFriends }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:20;background:#111;display:flex;flex-direction:column;animation:fadeIn .18s ease">
+    <!-- Back + title -->
+    <div style="flex:none;padding:66px 20px 0">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <button style="width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.07);border:0;cursor:pointer;display:flex;align-items:center;justify-content:center" onClick="{{ back }}">
+          <svg width="10" height="17" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke="#f0eeec" stroke-width="2.2" stroke-linecap="round"></path></svg>
+        </button>
+        <h2 style="font-size:22px;font-weight:800;margin:0;color:#f0eeec">{{ txt.groupTitle }}</h2>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:20px;padding-left:46px">{{ txt.groupSub }}</div>
+    </div>
+
+    <!-- FIRST TIME: set up your dot -->
+    <sc-if value="{{ notHasIdentity }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto;padding:0 20px 90px">
+      <div style="background:rgba(233,193,91,.07);border:1px solid rgba(233,193,91,.2);border-radius:18px;padding:22px 20px;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:800;color:#f0eeec;margin-bottom:4px">Your dot</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:18px">Pick a name and colour. Friends see this on the map.</div>
+        <!-- Name input -->
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Your name</div>
+        <input style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;font-size:16px;font-weight:700;color:#f0eeec;outline:none;font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:16px" placeholder="e.g. Rimi" maxlength="10" value="{{ setupName }}" onInput="{{ onSetupName }}">
+        <!-- Color picker -->
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:10px">Your colour</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px">
+          <sc-for list="{{ setupColors }}" as="sc" hint-placeholder-count="16">
+          <button style="width:32px;height:32px;border-radius:50%;background:{{ sc.c }};border:3px solid {{ sc.bd }};cursor:pointer;flex-shrink:0;transition:border .12s" onClick="{{ sc.tap }}"></button>
+          </sc-for>
+        </div>
+        <button style="width:100%;min-height:48px;border-radius:12px;border:0;background:linear-gradient(90deg,#E9C15B,#d4a843,#f5d070,#E9C15B);background-size:200% 100%;animation:flowGold 2.5s linear infinite;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;color:#111" onClick="{{ saveIdentity }}">Save →</button>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- RETURNING: friends list -->
+    <sc-if value="{{ hasIdentity }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:none;padding:0 20px 12px">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:16px">
+        <div style="width:38px;height:38px;border-radius:50%;background:{{ setupColor }};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#111;flex-shrink:0">{{ setupName }}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:#f0eeec">{{ txt.shareDot }}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;font-weight:400">{{ txt.shareSub }}</div>
+        </div>
+        <button style="width:46px;height:28px;border:0;padding:0;border-radius:14px;background:{{ shareTrack }};position:relative;cursor:pointer;flex-shrink:0;transition:background .2s" onClick="{{ toggleShare }}">
+          <div style="position:absolute;top:4px;left:{{ shareKnob }};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:left .2s"></div>
+        </button>
+      </div>
+      <button style="margin-top:8px;background:transparent;border:0;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:rgba(255,255,255,.3);padding:4px 0;text-decoration:underline;text-underline-offset:3px" onClick="{{ editIdentity }}">Change name or colour</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 20px 90px">
+      <sc-for list="{{ friends }}" as="f" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="width:44px;height:44px;flex:none;border-radius:14px;background:{{ f.ringBg }};display:flex;align-items:center;justify-content:center;position:relative">
+          <div style="width:14px;height:14px;border-radius:50%;background:{{ f.c }}"></div>
+          <div style="position:absolute;bottom:2px;right:2px;width:8px;height:8px;border-radius:50%;background:{{ f.c }};border:1.5px solid #111"></div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:700;color:#f0eeec">{{ f.n }}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:2px;font-weight:400">{{ f.at }}</div>
+        </div>
+        <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,.2)">{{ f.ago }}</span>
+      </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+  </div>
+  </sc-if>
+
+  <!-- ===================== FLOATING PILL TAB BAR ===================== -->
+  <sc-if value="{{ showTabBar }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;bottom:18px;left:18px;right:18px;z-index:30;background:rgba(10,10,10,.96);backdrop-filter:blur(20px);border-radius:28px;border:1px solid rgba(255,255,255,.09);padding:8px;display:flex;align-items:center;gap:2px;box-shadow:0 10px 40px rgba(0,0,0,.6)">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+    <button style="flex:{{ t.flex }};height:44px;border-radius:22px;border:0;cursor:pointer;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;background:{{ t.bg }};transition:flex .25s cubic-bezier(.4,0,.2,1),background .15s;overflow:hidden;white-space:nowrap;min-width:44px" onClick="{{ t.tap }}">
+      {{ t.icon }}
+      <sc-if value="{{ t.active }}" hint-placeholder-val="{{ false }}">
+      <span style="font-size:14px;font-weight:800;color:#111;letter-spacing:.01em">{{ t.label }}</span>
+      </sc-if>
+    </button>
+    </sc-for>
+  </div>
+  </sc-if>
+
+</div>
+</x-import>
+</div>
+</sc-if>
+
+<!-- ===================== DESKTOP LAYOUT ===================== -->
+<sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;display:flex;background:#0a0a0a;font-family:'Plus Jakarta Sans',sans-serif;color:#f0eeec">
+
+  <!-- Left sidebar -->
+  <div style="width:272px;flex:none;background:#0f0f0f;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden">
+    <!-- Header -->
+    <div style="padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:34px;height:34px;border-radius:10px;background:#1a1a1a;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center">
+          <img src="./uploads/download.png" style="width:26px;height:26px;object-fit:contain;filter:invert(1) hue-rotate(180deg) brightness(1.4) saturate(1.3)">
+        </div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#f0eeec;line-height:1">Pujo Poth</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;font-weight:500">Durga Pujo 2025</div>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:5px;background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.2);border-radius:20px;padding:3px 8px">
+          <span style="width:5px;height:5px;border-radius:50%;background:#4caf50"></span>
+          <span style="font-size:9px;font-weight:700;color:#4caf50;letter-spacing:.06em">LIVE</span>
+        </div>
+      </div>
+      <!-- Zone pills -->
+      <div style="display:flex;gap:5px">
+        <sc-for list="{{ zones }}" as="z" hint-placeholder-count="3">
+        <button style="flex:1;padding:7px 4px;border-radius:10px;border:1.5px solid {{ z.deskBd }};cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:700;background:{{ z.deskBg }};color:{{ z.deskFg }}" onClick="{{ z.tap }}">
+          <div style="font-size:16px;font-weight:800;color:{{ z.deskNumFg }};line-height:1;margin-bottom:2px">{{ z.count }}</div>
+          {{ z.label }}
+        </button>
+        </sc-for>
+      </div>
+    </div>
+    <!-- Pandal list -->
+    <div style="flex:1;overflow-y:auto">
+      <div style="padding:10px 18px 6px;font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2)">Pandals</div>
+      <sc-for list="{{ cardPandals }}" as="c" hint-placeholder-count="0">
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03)" onClick="{{ c.tap }}">
+        <div style="width:42px;height:42px;flex:none;border-radius:10px;overflow:hidden;background:#1a1a1a;flex-shrink:0;position:relative">
+          <sc-if value="{{ c.displayName }}" hint-placeholder-val="{{ false }}"><img src="{{ c.imgUrl }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></sc-if>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.displayName }}</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.32);margin-top:2px">{{ c.dist }} · {{ c.theme }}</div>
+        </div>
+        <sc-if value="{{ c.showCrowd }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:1.5px;align-items:flex-end;height:12px;flex-shrink:0">
+          <div style="width:3px;border-radius:1px;background:rgba(233,193,91,.3);height:5px"></div>
+          <div style="width:3px;border-radius:1px;background:rgba(233,193,91,.5);height:8px"></div>
+          <div style="width:3px;border-radius:1px;background:#E9C15B;height:12px"></div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-for>
+    </div>
+    <!-- Arsalan quick bar -->
+    <div style="padding:10px 14px 14px;border-top:1px solid rgba(255,255,255,.05)">
+      <button style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(233,193,91,.06);border-radius:12px;border:1px solid rgba(233,193,91,.15);cursor:pointer" onClick="{{ goArsalan }}">
+        <img src="./uploads/download.png" style="width:26px;height:26px;object-fit:contain;filter:invert(1) hue-rotate(180deg) brightness(1.4) saturate(1.3);flex-shrink:0">
+        <div style="flex:1;min-width:0;text-align:left">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#E9C15B;margin-bottom:1px">Nearest Arsalan</div>
+          <div style="font-size:12px;font-weight:600;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ nearArsalan }} · {{ nearKm }} km · {{ nearMin }} {{ txt.min }}</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#E9C15B" opacity=".4"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#E9C15B" stroke-width="1.6" stroke-linejoin="round"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Center: map -->
+  <div style="flex:1;position:relative">
+    <div ref="{{ mapRef }}" style="position:absolute;inset:0;background:#111"></div>
+    <!-- Map controls -->
+    <div style="position:absolute;top:16px;left:16px;right:16px;z-index:900;display:flex;gap:8px">
+      <button style="flex:1;display:flex;align-items:center;gap:10px;background:rgba(10,10,10,.88);backdrop-filter:blur(16px);border-radius:12px;padding:10px 14px;border:1px solid rgba(255,255,255,.08);cursor:pointer;text-align:left" onClick="{{ goSearch }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="rgba(255,255,255,.4)" stroke-width="1.9"></circle><path d="M16.5 16.5L21 21" stroke="rgba(255,255,255,.4)" stroke-width="1.9" stroke-linecap="round"></path></svg>
+        <span style="font-size:13px;color:rgba(255,255,255,.35);font-weight:500">{{ txt.searchPH }}</span>
+      </button>
+      <button style="width:40px;height:40px;border-radius:12px;background:rgba(10,10,10,.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);cursor:pointer;display:flex;align-items:center;justify-content:center" onClick="{{ recenter }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#4285f4" stroke-width="1.8" fill="#4285f4" fill-opacity=".2"></circle><path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#4285f4" stroke-width="1.9" stroke-linecap="round"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div style="width:360px;flex:none;background:#111;border-left:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;overflow:hidden">
+    <!-- Tab bar -->
+    <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.06);padding:0 8px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <button style="flex:1;height:52px;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-bottom:2px solid {{ t.activeBd }};transition:all .15s" onClick="{{ t.tap }}">
+        {{ t.deskIcon }}
+        <span style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:{{ t.activeLbl }}">{{ t.label }}</span>
+      </button>
+      </sc-for>
+    </div>
+    <!-- Right panel content: planner -->
+    <sc-if value="{{ isPlanner }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto;padding:16px">
+      <div style="font-size:14px;font-weight:800;color:#f0eeec;margin-bottom:12px">{{ txt.plannerTitle }}</div>
+      <!-- Time + duration pickers -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;margin-bottom:14px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <!-- Start time -->
+          <div style="flex:1">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:10px">{{ txt.startTime }}</div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <button onClick="{{ incStartH }}" onWheel="{{ onHourWheel }}" style="width:28px;height:18px;border:0;background:rgba(255,255,255,.07);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+                <div onWheel="{{ onHourWheel }}" style="font-size:24px;font-weight:800;color:#f0eeec;line-height:1;min-width:28px;text-align:center;cursor:ns-resize">{{ h12 }}</div>
+                <button onClick="{{ decStartH }}" style="width:28px;height:18px;border:0;background:rgba(255,255,255,.07);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              </div>
+              <span style="font-size:22px;font-weight:800;color:#E9C15B;line-height:1;align-self:center">:</span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <button onClick="{{ incMinTens }}" onWheel="{{ onMinTensWheel }}" style="width:22px;height:18px;border:0;background:rgba(255,255,255,.07);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+                <div onWheel="{{ onMinTensWheel }}" style="font-size:24px;font-weight:800;color:#f0eeec;line-height:1;min-width:16px;text-align:center;cursor:ns-resize">{{ minTens }}</div>
+                <button onClick="{{ decMinTens }}" style="width:22px;height:18px;border:0;background:rgba(255,255,255,.07);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <button onClick="{{ incMinUnits }}" onWheel="{{ onMinUnitsWheel }}" style="width:22px;height:18px;border:0;background:rgba(255,255,255,.07);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+                <div onWheel="{{ onMinUnitsWheel }}" style="font-size:24px;font-weight:800;color:#f0eeec;line-height:1;min-width:16px;text-align:center;cursor:ns-resize">{{ minUnits }}</div>
+                <button onClick="{{ decMinUnits }}" style="width:22px;height:18px;border:0;background:rgba(255,255,255,.07);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px;margin-left:3px;align-self:center">
+                <button onClick="{{ setAM }}" style="padding:4px 6px;border-radius:6px;border:0;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:9px;font-weight:700;background:{{ amBg }};color:{{ amFg }}">AM</button>
+                <button onClick="{{ setPM }}" style="padding:4px 6px;border-radius:6px;border:0;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:9px;font-weight:700;background:{{ pmBg }};color:{{ pmFg }}">PM</button>
+              </div>
+            </div>
+          </div>
+          <div style="width:1px;background:rgba(255,255,255,.07);align-self:stretch"></div>
+          <!-- Duration -->
+          <div style="flex:0 0 auto;min-width:60px">
+            <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:10px">{{ txt.duration }}</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <button onClick="{{ incDur }}" style="width:36px;height:18px;border:0;background:rgba(233,193,91,.15);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 5l4-4 4 4" stroke="#E9C15B" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+              <div style="font-size:22px;font-weight:800;color:#f0eeec;text-align:center">{{ durDisplayBig }}</div>
+              <button onClick="{{ decDur }}" style="width:36px;height:18px;border:0;background:rgba(255,255,255,.07);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,.45)" stroke-width="1.6" stroke-linecap="round"></path></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <sc-for list="{{ plannerStops }}" as="ps" hint-placeholder-count="5">
+      <div style="background:{{ ps.cardBg }};border:1px solid {{ ps.cardBd }};border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;position:relative;overflow:hidden">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:{{ ps.dotBd }};border-radius:14px 0 0 14px"></div>
+        <div style="width:36px;height:36px;flex:none;border-radius:10px;background:{{ ps.dotBg }};display:flex;align-items:center;justify-content:center">{{ ps.dotIcon }}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ps.name }}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.32);margin-top:1px">{{ ps.time }} · {{ ps.dur }}</div>
+        </div>
+      </div>
+      </sc-for>
+      <div style="margin-top:4px;padding:12px 14px;background:rgba(233,193,91,.06);border:1px solid rgba(233,193,91,.15);border-radius:14px">
+        <div style="font-size:11px;color:rgba(255,255,255,.35)">{{ txt.wrapUp }}</div>
+        <div style="font-size:14px;font-weight:700;color:#E9C15B;margin-top:3px">{{ plannerSummary }}</div>
+      </div>
+    </div>
+    <div style="flex:none;padding:12px 16px;border-top:1px solid rgba(255,255,255,.05)">
+      <button style="width:100%;min-height:46px;border-radius:12px;border:0;background:linear-gradient(90deg,#E9C15B,#d4a843,#f5d070,#E9C15B);background-size:200% 100%;animation:flowGold 2.5s linear infinite;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:#111;display:flex;align-items:center;justify-content:center;gap:8px" onClick="{{ deskGoRoute }}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#111" opacity=".3"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#111" stroke-width="1.7" stroke-linejoin="round"></path></svg>
+        {{ txt.openFullTrip }}
+      </button>
+    </div>
+    </sc-if>
+    <!-- Right panel content: friends -->
+    <sc-if value="{{ isFriends }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto;padding:16px">
+      <div style="font-size:14px;font-weight:800;color:#f0eeec;margin-bottom:4px">{{ txt.groupTitle }}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:16px">{{ txt.groupSub }}</div>
+      <sc-for list="{{ friends }}" as="f" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="width:36px;height:36px;border-radius:10px;background:{{ f.ringBg }};display:flex;align-items:center;justify-content:center;position:relative">
+          <div style="width:12px;height:12px;border-radius:50%;background:{{ f.c }}"></div>
+        </div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:700;color:#f0eeec">{{ f.n }}</div><div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:1px">{{ f.at }}</div></div>
+        <span style="font-size:11px;color:rgba(255,255,255,.25)">{{ f.ago }}</span>
+      </div>
+      </sc-for>
+    </div>
+    </sc-if>
+    <!-- Right panel content: search -->
+    <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:none;padding:16px 16px 0">
+      <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="rgba(255,255,255,.35)" stroke-width="1.9"></circle><path d="M16.5 16.5L21 21" stroke="rgba(255,255,255,.35)" stroke-width="1.9" stroke-linecap="round"></path></svg>
+        <input style="flex:1;background:transparent;border:0;outline:0;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;color:#f0eeec" placeholder="{{ txt.searchPH }}" value="{{ q }}" onInput="{{ onQ }}">
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 16px 16px">
+      <sc-for list="{{ searchResults }}" as="r" hint-placeholder-count="8">
+      <button style="display:flex;width:100%;gap:10px;align-items:center;padding:10px 0;background:transparent;border:0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;text-align:left" onClick="{{ r.tap }}">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(233,193,91,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2a7 7 0 0 1 7 7c0 4.5-7 13-7 13S5 13.5 5 9a7 7 0 0 1 7-7z" fill="#E9C15B" opacity=".25"></path><path d="M12 2a7 7 0 0 1 7 7c0 4.5-7 13-7 13S5 13.5 5 9a7 7 0 0 1 7-7z" stroke="#E9C15B" stroke-width="1.8"></path><circle cx="12" cy="9" r="2.5" fill="#E9C15B"></circle></svg>
+        </div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#f0eeec;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.displayName }}</div><div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:1px">{{ r.zLabel }} · {{ r.crowdWord }}</div></div>
+        <div style="font-size:12px;font-weight:700;color:#E9C15B">{{ r.km }} km</div>
+      </button>
+      </sc-for>
+    </div>
+    </sc-if>
+    <!-- Default: Arsalan details always shown -->
+    <sc-if value="{{ deskDefault }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto">
+      <div style="position:relative;height:170px;overflow:hidden;flex-shrink:0">
+        <img src="{{ zoneArsPhoto }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.15))"></div>
+        <div style="position:absolute;bottom:14px;left:16px;right:16px">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#E9C15B;margin-bottom:3px">{{ txt.nearest }}</div>
+          <div style="font-size:18px;font-weight:800;color:#fff;line-height:1.15">{{ nearArsalanFull }}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px">{{ nearKm }} km · {{ nearMin }} {{ txt.min }} · {{ txt.openTill }}</div>
+        </div>
+      </div>
+      <div style="padding:14px 16px 0">
+        <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:14px;margin-bottom:12px">
+          <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:10px">
+            <div>
+              <div style="font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)">{{ txt.tableWait }}</div>
+              <div style="font-size:44px;font-weight:900;color:#E9C15B;line-height:1;margin-top:4px">{{ sel.wait }}</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.3)">{{ txt.minutes }}</div>
+            </div>
+            <div style="flex:1;display:flex;align-items:flex-end;gap:3px;height:44px">
+              <sc-for list="{{ waitBars }}" as="b" hint-placeholder-count="8">
+              <div style="flex:1;border-radius:3px 3px 0 0;background:{{ b.c }};height:{{ b.h }}"></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.25);padding-top:8px;border-top:1px solid rgba(255,255,255,.05)">{{ txt.crowdNow }}</div>
+        </div>
+        <div style="font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:8px">{{ txt.peopleOrder }}</div>
+        <sc-for list="{{ menu }}" as="m" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+          <span style="font-size:13px;font-weight:600;color:#f0eeec;flex:1">{{ m.n }}</span>
+          <span style="font-size:13px;font-weight:800;color:#E9C15B">{{ m.price }}</span>
+        </div>
+        </sc-for>
+      </div>
+      <div style="padding:12px 16px 16px">
+        <button style="width:100%;min-height:44px;border-radius:12px;border:0;background:linear-gradient(90deg,#E9C15B,#d4a843,#f5d070,#E9C15B);background-size:200% 100%;animation:flowGold 2.5s linear infinite;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:#111;display:flex;align-items:center;justify-content:center;gap:8px" onClick="{{ deskGoRoute }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#111" opacity=".3"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#111" stroke-width="1.6" stroke-linejoin="round"></path></svg>
+          Route to Arsalan
+        </button>
+      </div>
+    </div>
+    </sc-if>
+    <!-- Pandal detail in right panel -->
+    <sc-if value="{{ isPandal }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;overflow-y:auto">
+      <div style="height:180px;position:relative;overflow:hidden;flex-shrink:0">
+        <img src="{{ selPandalPhoto }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.8),rgba(0,0,0,.1))"></div>
+        <div style="position:absolute;bottom:14px;left:16px;right:16px">
+          <div style="font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#E9C15B;margin-bottom:3px">{{ sel.zLabel }}</div>
+          <div style="font-size:20px;font-weight:800;color:#fff;line-height:1.15">{{ sel.displayName }}</div>
+        </div>
+      </div>
+      <div style="padding:14px 16px">
+        <sc-if value="{{ showCrowd }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+          <span style="padding:4px 10px;border-radius:20px;background:rgba(233,193,91,.15);font-size:11px;font-weight:700;color:#E9C15B">{{ sel.crowdWord }}</span>
+          <span style="padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.07);font-size:11px;font-weight:600;color:rgba(255,255,255,.5)">Queue ~{{ sel.queue }} {{ txt.min }}</span>
+          <span style="padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.07);font-size:11px;font-weight:600;color:rgba(255,255,255,.5)">{{ sel.theme }}</span>
+        </div>
+        </sc-if>
+        <div style="background:rgba(233,193,91,.07);border:1px solid rgba(233,193,91,.18);border-radius:12px;padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+          <img src="./uploads/download.png" style="width:28px;height:28px;object-fit:contain;filter:invert(1) hue-rotate(180deg) brightness(1.4) saturate(1.3);flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#E9C15B;margin-bottom:1px">{{ txt.nearest }}</div>
+            <div style="font-size:13px;font-weight:700;color:#f0eeec">Arsalan {{ sel.arsalan }}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:1px">{{ sel.km }} km · {{ sel.min }} {{ txt.min }} · {{ txt.openTill }}</div>
+          </div>
+        </div>
+        <button style="width:100%;min-height:44px;border-radius:12px;border:0;background:linear-gradient(90deg,#E9C15B,#d4a843,#f5d070,#E9C15B);background-size:200% 100%;animation:flowGold 2.5s linear infinite;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:#111;display:flex;align-items:center;justify-content:center;gap:8px" onClick="{{ deskGoRoute }}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" fill="#111" opacity=".3"></path><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#111" stroke-width="1.7" stroke-linejoin="round"></path></svg>
+          {{ txt.routeCTA }}
+        </button>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {&quot;width&quot;: 402, &quot;height&quot;: 682},
+  &quot;defaultLang&quot;: {
+    &quot;editor&quot;: &quot;segmented&quot;,
+    &quot;options&quot;: [&quot;English&quot;, &quot;বাংলা&quot;],
+    &quot;default&quot;: &quot;English&quot;,
+    &quot;section&quot;: &quot;Defaults&quot;
+  },
+  &quot;defaultZone&quot;: {
+    &quot;editor&quot;: &quot;select&quot;,
+    &quot;options&quot;: [&quot;North Kolkata&quot;, &quot;South Kolkata&quot;, &quot;Behala&quot;],
+    &quot;default&quot;: &quot;South Kolkata&quot;,
+    &quot;section&quot;: &quot;Defaults&quot;
+  },
+  &quot;showCrowdData&quot;: {
+    &quot;editor&quot;: &quot;boolean&quot;,
+    &quot;default&quot;: true,
+    &quot;section&quot;: &quot;Display&quot;,
+    &quot;label&quot;: &quot;Show crowd &amp; queue info&quot;
+  }
+}">
+const PANDALS = [
+  {n:'Bagbazar Sarbojanin',bn:'বাগবাজার সর্বজনীন',zone:'north',lat:22.5890,lng:88.3698,crowd:4,theme:'Traditional',queue:35,arsalan:'Kankurgachi',arsLat:22.5698,arsLng:88.3767,km:'2.4',min:12,wait:20},
+  {n:'Kumartuli Park',bn:'কুমারটুলি পার্ক',zone:'north',lat:22.5833,lng:88.3630,crowd:3,theme:'Idol quarter',queue:20,arsalan:'Kankurgachi',arsLat:22.5698,arsLng:88.3767,km:'3.1',min:15,wait:20},
+  {n:'Ahiritola Sarbojanin',bn:'আহিরীটোলা',zone:'north',lat:22.5867,lng:88.3720,crowd:3,theme:'Ghat-side',queue:18,arsalan:'Circus Ave.',arsLat:22.5576,arsLng:88.3518,km:'4.6',min:22,wait:30},
+  {n:'Mohammad Ali Park',bn:'মহম্মদ আলি পার্ক',zone:'north',lat:22.5700,lng:88.3567,crowd:4,theme:'Replica',queue:30,arsalan:'Circus Ave.',arsLat:22.5576,arsLng:88.3518,km:'2.2',min:11,wait:30},
+  {n:'Santosh Mitra Square',bn:'সন্তোষ মিত্র স্কোয়ার',zone:'north',lat:22.5680,lng:88.3598,crowd:5,theme:'Light spectacle',queue:55,arsalan:'Circus Ave.',arsLat:22.5576,arsLng:88.3518,km:'1.6',min:9,wait:30},
+  {n:'College Square',bn:'কলেজ স্কোয়ার',zone:'north',lat:22.5757,lng:88.3561,crowd:4,theme:'Lit tank',queue:25,arsalan:'Circus Ave.',arsLat:22.5576,arsLng:88.3518,km:'2.0',min:10,wait:30},
+  {n:'Ekdalia Evergreen',bn:'একডালিয়া এভারগ্রিন',zone:'south',lat:22.5215,lng:88.3630,crowd:4,theme:'Temple facade',queue:20,arsalan:'Park Circus',arsLat:22.5373,arsLng:88.3650,km:'1.8',min:9,wait:25},
+  {n:'Singhi Park',bn:'সিংহী পার্ক',zone:'south',lat:22.5175,lng:88.3667,crowd:3,theme:'Sabeki',queue:15,arsalan:'Park Circus',arsLat:22.5373,arsLng:88.3650,km:'2.1',min:10,wait:25},
+  {n:'Ballygunge Cultural',bn:'বালিগঞ্জ কালচারাল',zone:'south',lat:22.5195,lng:88.3718,crowd:4,theme:'Art install.',queue:30,arsalan:'Park Circus',arsLat:22.5373,arsLng:88.3650,km:'2.4',min:11,wait:25},
+  {n:'Deshapriya Park',bn:'দেশপ্রিয় পার্ক',zone:'south',lat:22.5262,lng:88.3655,crowd:5,theme:'Grand scale',queue:50,arsalan:'Park Circus',arsLat:22.5373,arsLng:88.3650,km:'2.9',min:13,wait:25},
+  {n:'Mudiali Club',bn:'মুদিয়ালি',zone:'south',lat:22.5143,lng:88.3570,crowd:3,theme:'Lake-side',queue:18,arsalan:'Park Circus',arsLat:22.5373,arsLng:88.3650,km:'3.4',min:15,wait:25},
+  {n:'66 Pally',bn:'৬৬ পল্লী',zone:'south',lat:22.5100,lng:88.3544,crowd:3,theme:'Craft-led',queue:16,arsalan:'Park Circus',arsLat:22.5373,arsLng:88.3650,km:'3.8',min:17,wait:25},
+  {n:'Suruchi Sangha',bn:'সুরুচি সংঘ',zone:'south',lat:22.5059,lng:88.3499,crowd:4,theme:'State theme',queue:28,arsalan:'Park Circus',arsLat:22.5373,arsLng:88.3650,km:'4.2',min:18,wait:25},
+  {n:'Barisha Club',bn:'বড়িশা ক্লাব',zone:'behala',lat:22.4978,lng:88.3133,crowd:4,theme:'Story theme',queue:30,arsalan:'Behala',arsLat:22.4986,arsLng:88.3194,km:'1.2',min:7,wait:15},
+  {n:'Behala Nutan Dal',bn:'বেহালা নূতন দল',zone:'behala',lat:22.4988,lng:88.3180,crowd:4,theme:'Sculptural',queue:26,arsalan:'Behala',arsLat:22.4986,arsLng:88.3194,km:'0.6',min:4,wait:15},
+  {n:'Behala Friends',bn:'বেহালা ফ্রেন্ডস',zone:'behala',lat:22.4969,lng:88.3156,crowd:4,theme:'Craft-led',queue:24,arsalan:'Behala',arsLat:22.4986,arsLng:88.3194,km:'0.9',min:5,wait:15},
+  {n:'41 Pally',bn:'৪১ পল্লী',zone:'behala',lat:22.5010,lng:88.3198,crowd:2,theme:'Sabeki',queue:8,arsalan:'Behala',arsLat:22.4986,arsLng:88.3194,km:'1.1',min:6,wait:15},
+];
+const ARSALAN_LIST = [
+  {short:'Park Circus',lat:22.5373,lng:88.3650},{short:'Circus Ave.',lat:22.5576,lng:88.3518},
+  {short:'Kankurgachi',lat:22.5698,lng:88.3767},{short:'Behala',lat:22.4986,lng:88.3194},
+];
+const ZONE_C={north:[22.575,88.364],south:[22.518,88.360],behala:[22.498,88.315]};
+const ZONE_N={north:{en:'North',bn:'উত্তর'},south:{en:'South',bn:'দক্ষিণ'},behala:{en:'Behala',bn:'বেহালা'}};
+const CROWD_W={en:['','Empty','Easy','Moderate','Heavy','Very heavy'],bn:['','ফাঁকা','হালকা','মাঝারি','ভিড়','খুব ভিড়']};
+const CARD_GRADS=['linear-gradient(135deg,#E9C15B,#b8963d)','linear-gradient(135deg,#1a5fa0,#0d3d6e)','linear-gradient(135deg,#5b21b6,#3b0764)','linear-gradient(135deg,#065f46,#064e3b)','linear-gradient(135deg,#7c2d12,#431407)','linear-gradient(135deg,#1e3a5f,#0f2540)'];
+
+class Component extends DCLogic {
+  constructor(p){super(p);this.mapRef=React.createRef();this.lmap=null;this._pm=[];this._am=[];this._route=null;this._loadAdminData();}
+  _loadAdminData(){
+    try{
+      const raw=localStorage.getItem('pujoAdminData');
+      if(!raw)return;
+      const admin=JSON.parse(raw);
+      // Rebuild PANDALS and ARSALAN_LIST from admin data
+      window.__adminData=admin;
+    }catch(e){}
+  }
+  state={screen:'planner',prev:'map',zone:'south',lang:'en',sel:'Ekdalia Evergreen',q:'',share:false,startHour:18,startMin:0,durMin:135,closingSheet:null,isDesktop:false,setupName:'',setupColor:'#E9C15B',editingIdentity:false,deskArsExpanded:false,
+    simCrowds:{},
+    simFriends:[
+      {n:'Rimi',c:'#E9C15B',lat:22.5215,lng:88.3630,at:'Ekdalia Evergreen · in queue',ago:'40s'},
+      {n:'Arko',c:'#f59e0b',lat:22.5262,lng:88.3655,at:'Near Gariahat',ago:'2 min'},
+      {n:'Tuki',c:'#4285f4',lat:22.5373,lng:88.3650,at:'Arsalan Park Circus',ago:'6 min'},
+      {n:'Bappa',c:'rgba(255,255,255,.2)',lat:null,lng:null,at:'Sharing paused',ago:'—'},
+    ]
+  };
+  componentDidMount(){
+    const lang=this.props.defaultLang==='বাংলা'?'bn':'en';
+    const zoneMap={'North Kolkata':'north','South Kolkata':'south','Behala':'behala'};
+    const zone=zoneMap[this.props.defaultZone]||'south';
+    const savedName=localStorage.getItem('pujoMyName')||'';
+    const savedColor=localStorage.getItem('pujoMyColor')||'#E9C15B';
+    this.setState({lang,zone,setupName:savedName,setupColor:savedColor});
+    if(window.__pujoMapInst){try{window.__pujoMapInst.remove();}catch(e){}window.__pujoMapInst=null;}
+    this.lmap=null;setTimeout(()=>this._init(),600);
+    this._startSimulation();
+    const mq=window.matchMedia('(min-width:1024px)');
+    this.setState({isDesktop:mq.matches});
+    mq.addEventListener('change',e=>this.setState({isDesktop:e.matches}));
+  }
+  componentDidUpdate(pp,ps){
+    const onMap=this.state.isDesktop||['map','pandal','arsalan'].includes(this.state.screen);
+    if(onMap){
+      const el=this.mapRef.current;
+      if(!el)return;
+      if(!this.lmap||!el._leaflet_id){
+        if(this.lmap){try{this.lmap.remove();}catch(e){}this.lmap=null;}
+        this._init();
+      } else {
+        if(this.state.screen==='map')setTimeout(()=>this.lmap&&this.lmap.invalidateSize(),150);
+        if(this.state.zone!==ps.zone){this._rebuildPins();this.lmap.flyTo(ZONE_C[this.state.zone],14,{duration:.9});}
+      }
+    }
+  }
+  _init(){
+    if(!window.L||!this.mapRef.current){setTimeout(()=>this._init(),400);return;}
+    // Guard: if element already has a leaflet map, remove it
+    if(this.mapRef.current._leaflet_id){try{const old=window.__pujoMapInst;if(old)old.remove();}catch(e){}}
+    const z=this.state.zone;
+    const m=window.L.map(this.mapRef.current,{center:ZONE_C[z],zoom:14,minZoom:12,maxZoom:19,zoomControl:false,attributionControl:false,scrollWheelZoom:true,touchZoom:true,doubleClickZoom:true,boxZoom:false});
+    window.__pujoMapInst=m;
+    const tl=window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,subdomains:'abc',attribution:'',crossOrigin:true}).addTo(m);
+    tl.on('load',()=>{});
+    m.getPane('tilePane').style.filter='invert(1) hue-rotate(200deg) brightness(.65) contrast(.85) saturate(.6)';
+    this.lmap=m;window.__pujoMapInst=m;
+    setTimeout(()=>{m.invalidateSize();m.setView(ZONE_C[this.state.zone],14);},300);
+    ARSALAN_LIST.forEach(a=>{
+      const icon=window.L.divIcon({html:`<div style="width:44px;height:44px;background:#111;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.6)"><img src="./uploads/download.png" style="width:34px;height:34px;object-fit:contain;filter:invert(1) hue-rotate(180deg) brightness(1.4) saturate(1.3)"></div>`,className:'',iconSize:[44,44],iconAnchor:[22,22]});
+      window.L.marker([a.lat,a.lng],{icon}).addTo(m).on('click',()=>this.setState({screen:'arsalan',prev:'map'}));
+    });
+    this._rebuildPins();
+  }
+  async _rebuildPins(){
+    if(!this.lmap)return;
+    this._pm.forEach(m=>m.remove());this._pm=[];
+    if(this._route){this._route.remove();this._route=null;}
+    const ps=PANDALS.filter(p=>p.zone===this.state.zone);
+    const half=Math.ceil(ps.length/2);
+    const arsLat=ps[0]?ps[0].arsLat:22.5373,arsLng=ps[0]?ps[0].arsLng:88.3650;
+    ps.forEach((p,i)=>{
+      const shortName=p.n.split(' ').slice(0,2).join(' ');
+      const imgUrl='https://picsum.photos/seed/'+encodeURIComponent(p.n)+'/80/80';
+      const icon=window.L.divIcon({html:`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer"><div style="position:relative;width:42px;height:42px;flex-shrink:0"><div style="width:42px;height:42px;border-radius:50%;overflow:hidden;border:2.5px solid #E9C15B;box-shadow:0 2px 10px rgba(0,0,0,.55)"><img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover"></div><div style="position:absolute;top:-4px;right:-4px;width:17px;height:17px;border-radius:50%;background:#E9C15B;border:1.5px solid #111;display:flex;align-items:center;justify-content:center;font:800 9px/1 'Plus Jakarta Sans',sans-serif;color:#111">${i+1}</div></div><div style="background:rgba(10,10,10,.88);border-radius:6px;padding:2px 7px;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font:600 9px/1.3 'Plus Jakarta Sans',sans-serif;color:#fff">${shortName}</span></div></div>`,className:'',iconSize:[88,64],iconAnchor:[44,21]});
+      this._pm.push(window.L.marker([p.lat,p.lng],{icon}).addTo(this.lmap).on('click',()=>this.setState({sel:p.n,screen:'pandal',prev:'map'})));
+    });
+    if(ps.length<2)return;
+    // Build ordered waypoints [lng,lat] with Arsalan inserted in the middle
+    const wpts=[];
+    ps.forEach((p,i)=>{if(i===half)wpts.push([arsLng,arsLat]);wpts.push([p.lng,p.lat]);});
+    const coordStr=wpts.map(w=>w.join(',')).join(';');
+    const drawFallback=()=>{
+      const ll=wpts.map(w=>[w[1],w[0]]);
+      this._route=window.L.polyline(ll,{color:'#E9C15B',weight:3,opacity:.65,dashArray:'8 6'}).addTo(this.lmap);
+    };
+    try{
+      const res=await fetch(`https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson`);
+      const data=await res.json();
+      if(data.routes&&data.routes[0]){
+        const ll=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+        this._route=window.L.polyline(ll,{color:'#E9C15B',weight:3.5,opacity:.85,dashArray:'10 5',lineJoin:'round'}).addTo(this.lmap);
+      } else drawFallback();
+    }catch(e){drawFallback();}
+  }
+  go(s){this.setState(st=>({screen:s,prev:st.screen}));}
+  closeSheet(name){
+    this.setState({closingSheet:name});
+    setTimeout(()=>this.setState(st=>({screen:st.prev||'map',prev:'map',closingSheet:null})),260);
+  }
+  _startSimulation(){
+    this._tickSimulation();
+    this._simInterval=setInterval(()=>this._tickSimulation(),25000);
+  }
+  _tickSimulation(){
+    const hour=new Date().getHours();
+    const mult=hour>=19&&hour<=23?1.3:hour>=16?1.0:hour>=12?0.7:0.5;
+    const newCrowds={};
+    PANDALS.forEach(p=>{
+      const noise=(Math.random()-.5)*1.4;
+      newCrowds[p.n]=Math.max(1,Math.min(5,Math.round(p.crowd*mult+noise)));
+    });
+    const friends=[...this.state.simFriends];
+    const movable=friends.filter(f=>f.lat!==null);
+    if(movable.length){
+      const idx=friends.indexOf(movable[Math.floor(Math.random()*movable.length)]);
+      const pool=PANDALS.filter(p=>p.zone===this.state.zone);
+      if(pool.length){
+        const dest=pool[Math.floor(Math.random()*pool.length)];
+        friends[idx]={...friends[idx],lat:dest.lat+(Math.random()-.5)*.003,lng:dest.lng+(Math.random()-.5)*.003,at:dest.n,ago:'just now'};
+      }
+    }
+    this.setState({simCrowds:newCrowds,simFriends:friends},()=>this._updateFriendMarkers());
+  }
+  _updateFriendMarkers(){
+    if(!this.lmap)return;
+    (this._fm||[]).forEach(m=>m.remove());this._fm=[];
+    this.state.simFriends.forEach(f=>{
+      if(!f.lat||!this.state.share)return;
+      const icon=window.L.divIcon({html:`<div style="width:18px;height:18px;border-radius:50%;background:${f.c};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5)"></div>`,className:'',iconSize:[18,18],iconAnchor:[9,9]});
+      this._fm.push(window.L.marker([f.lat,f.lng],{icon}).addTo(this.lmap).bindPopup(f.n));
+    });
+  }
+  incStartH(){this.setState(st=>({startHour:(st.startHour+1)%24}));}
+  decStartH(){this.setState(st=>({startHour:(st.startHour+23)%24}));}
+  incStartM(){this.setState(st=>({startMin:(st.startMin+1)%60}));}
+  decStartM(){this.setState(st=>({startMin:(st.startMin+59)%60}));}
+  incDur(){this.setState(st=>({durMin:Math.min(st.durMin+15,480)}));}
+  decDur(){this.setState(st=>({durMin:Math.max(st.durMin-15,30)}));}
+  setAM(){this.setState(st=>({startHour:st.startHour>=12?st.startHour-12:st.startHour}));}
+  setPM(){this.setState(st=>({startHour:st.startHour<12?st.startHour+12:st.startHour}));}
+  _tsp(pandals){
+    if(pandals.length<=2)return pandals;
+    const dist=(a,b)=>Math.sqrt(Math.pow(a.lat-b.lat,2)+Math.pow(a.lng-b.lng,2));
+    const visited=new Array(pandals.length).fill(false);
+    const path=[0];visited[0]=true;
+    while(path.length<pandals.length){
+      const last=path[path.length-1];
+      let best=-1,bestD=Infinity;
+      for(let j=0;j<pandals.length;j++){
+        if(!visited[j]){const d=dist(pandals[last],pandals[j]);if(d<bestD){bestD=d;best=j;}}
+      }
+      path.push(best);visited[best]=true;
+    }
+    return path.map(i=>pandals[i]);
+  }
+  _stopRef(p,arsalan){
+    // Use Plus Code if available for precise Google Maps place matching
+    const admin=window.__adminData;
+    if(admin){
+      const zone=admin.zones?.find(z=>z.pandals?.some(ap=>ap.name===p?.n||ap.id===p?.adminId));
+      const ap=zone?.pandals?.find(ap=>ap.name===p?.n);
+      if(ap?.plusCode)return encodeURIComponent(ap.plusCode);
+    }
+    return p.lat+','+p.lng;
+  }
+  _arsalanRef(arsalan){
+    const admin=window.__adminData;
+    if(admin){
+      for(const z of admin.zones||[]){
+        const a=z.arsalan?.find(a=>a.shortName===arsalan||a.name===arsalan||a.name==='Arsalan '+arsalan);
+        if(a?.plusCode)return encodeURIComponent(a.plusCode);
+      }
+    }
+    return arsalan.arsLat+','+arsalan.arsLng;
+  }
+  _mapsUrl(pandals,arsLat,arsLng,arsalanName){
+    const ordered=this._tsp(pandals);
+    const half=Math.ceil(ordered.length/2);
+    const stops=[];
+    ordered.forEach((p,i)=>{
+      if(i===half){
+        // Use Plus Code for Arsalan if available
+        const admin=window.__adminData;
+        let arsRef=arsLat+','+arsLng;
+        if(admin&&arsalanName){
+          for(const z of admin.zones||[]){
+            const a=z.arsalan?.find(a=>a.shortName===arsalanName||'Arsalan '+a.shortName===arsalanName);
+            if(a?.plusCode){arsRef=encodeURIComponent(a.plusCode);break;}
+          }
+        }
+        stops.push(arsRef);
+      }
+      stops.push(this._stopRef(p,arsalanName));
+    });
+    return 'https://www.google.com/maps/dir/'+stops.join('/');
+  }
+  renderVals(){
+    const s=this.state,l=s.lang;
+    const showCrowd=this.props.showCrowdData??true;
+    const liveC=p=>s.simCrowds[p.n]||p.crowd;
+    const isMobile=!s.isDesktop;
+    const t=(en,bn)=>l==='en'?en:(bn||en);
+    const cw=c=>CROWD_W[l][c]||'';
+    const pn=p=>l==='en'?p.n:p.bn;
+    const zn=k=>ZONE_N[k][l];
+    const inZone=PANDALS.filter(p=>p.zone===s.zone);
+    const half=Math.ceil(inZone.length/2);
+    const nearSel=PANDALS.find(p=>p.n===s.sel)||PANDALS[6];
+
+    const bars=c=>[1,2,3,4,5].map(i=>({c:i<=c?(c>=4?'#E9C15B':c>=3?'rgba(233,193,91,.6)':'rgba(255,255,255,.35)'):'rgba(255,255,255,.1)',h:(4+i*2)+'px'}));
+
+    const txt={
+      tonight:t('Tonight','আজ সন্ধ্যায়'),homeTitle:t("Tonight's crawl",'আজকের পথ'),
+      pandals:t('pandals','পুজো'),nearest:t('Nearest Arsalan','নিকটতম আরসালান'),
+      openMap:t('Open map','ম্যাপ দেখো'),startCrawl:t('Start crawl','শুরু করো'),
+      findTitle:t('Find a pandal','পুজো খোঁজো'),searchPH:t('Search pandals…','পুজো খোঁজো…'),
+      countLine:t(`${inZone.length} pandals · 1 Arsalan stop`,`${inZone.length}টি পুজো · ১ আরসালান`),
+      queue:t('Queue','লাইন'),min:t('min','মিনিট'),minutes:t('minutes','মিনিট'),
+      byCar:t('by car','গাড়িতে'),openTill:t('open till 2 am','রাত ২টা পর্যন্ত'),
+      routeCTA:t('Route in Google Maps','গুগল ম্যাপে রুট'),
+      seeOutlet:t('See outlet · menu, wait time','আউটলেট দেখো'),
+      handingOver:t('Handing over','হ্যান্ডওভার'),kmBiryani:t('km to biryani','কিমি দূরে বিরিয়ানি'),
+      distance:t('Distance','দূরত্ব'),drive:t('Drive','গাড়িতে'),tableWait:t('Wait','অপেক্ষা'),
+      cancel:t('Cancel','বাতিল'),theStop:t('The stop','আরসালান'),from:t('from','থেকে'),
+      crowdNow:t('Tonight 7 pm – midnight','আজ রাত ৭টা – মধ্যরাত'),
+      peopleOrder:t('Popular right now','এখন জনপ্রিয়'),
+      shareDot:t('Share my live dot','লাইভ ডট শেয়ার করো'),
+      shareSub:s.share?t('On · Rimi, Arko, Tuki','চালু'):t('Off','বন্ধ'),
+      openMaps:t('Open full trip in Google Maps','গুগল ম্যাপে পুরো রুট'),
+      groupTitle:t('The group','দলবল'),groupSub:t('4 people · dots only','৪ জন · শুধু ডট'),
+      plannerCTA:t('Plan my evening','সন্ধ্যার পরিকল্পনা'),plannerTitle:t('Plan my evening','সন্ধ্যার পরিকল্পনা'),
+      startTime:t('Start time','শুরুর সময়'),duration:t('Duration','কতক্ষণ'),
+      planPreview:t('Your evening','আপনার সন্ধ্যা'),wrapUp:t('Wrap-up time','শেষ সময়'),
+      openFullTrip:t('Open full trip in Google Maps','পুরো ট্রিপ গুগল ম্যাপে'),
+      tabMap:t('Map','ম্যাপ'),tabCrawl:t('Plan','পথ'),tabFind:t('Find','খোঁজো'),tabGroup:t('Group','দলবল'),
+    };
+
+    const pinIcon=(c)=>React.createElement('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none'},React.createElement('path',{d:'M12 2a7 7 0 0 1 7 7c0 4.5-7 13-7 13S5 13.5 5 9a7 7 0 0 1 7-7z',fill:c,fillOpacity:.25,stroke:c,strokeWidth:1.8,strokeLinejoin:'round'}),React.createElement('circle',{cx:12,cy:9,r:2.5,fill:c}));
+    const handiIcon=React.createElement('svg',{width:20,height:20,viewBox:'0 0 32 32',fill:'none'},React.createElement('ellipse',{cx:16,cy:13,rx:10,ry:7,fill:'rgba(233,193,91,.2)',stroke:'#E9C15B',strokeWidth:1.5}),React.createElement('path',{d:'M7 15c0 6 3.6 10 9 10s9-4 9-10',fill:'rgba(233,193,91,.1)',stroke:'#E9C15B',strokeWidth:1.5}),React.createElement('rect',{x:14.5,y:24.5,width:3,height:5,rx:1.5,fill:'#E9C15B'}),React.createElement('path',{d:'M6 13h-2a2 2 0 0 1 0-4h2M26 13h2a2 2 0 0 0 0-4h-2',stroke:'#E9C15B',strokeWidth:1.5,strokeLinecap:'round'}));
+
+    // PLAN (home screen)
+    const plan=[];
+    inZone.forEach((p,i)=>{
+      if(i===half)plan.push({displayName:t('Arsalan '+inZone[0].arsalan,'আরসালান '+inZone[0].arsalan),dist:inZone[0].km+' km · '+inZone[0].min+' '+txt.min,isArsalan:true,isPandal:false,iconBg:'rgba(233,193,91,.15)',bars:[],crowdDots:false,icon:handiIcon,tap:()=>this.go('arsalan')});
+      plan.push({displayName:pn(p),dist:i===0?t('Start here','এখান থেকে'):(0.3+i*0.22).toFixed(1)+' km',isArsalan:false,isPandal:true,iconBg:'rgba(233,193,91,.12)',bars:bars(p.crowd),crowdDots:true,icon:pinIcon('#E9C15B'),tap:()=>this.setState({sel:p.n,screen:'pandal',prev:'home'})});
+    });
+
+    const zones=['north','south','behala'].map(k=>({k,count:PANDALS.filter(p=>p.zone===k).length,label:zn(k),bg:s.zone===k?'#E9C15B':'rgba(255,255,255,.06)',bd:s.zone===k?'#E9C15B':'rgba(255,255,255,.09)',fg:s.zone===k?'#111':'rgba(255,255,255,.55)',numFg:s.zone===k?'#111':'#E9C15B',cardBg:s.zone===k?'rgba(233,193,91,.2)':'rgba(255,255,255,.05)',shadow:s.zone===k?'0 4px 14px rgba(233,193,91,.4)':'none',deskNumFg:s.zone===k?'#E9C15B':'rgba(255,255,255,.55)',deskFg:s.zone===k?'#fff':'rgba(255,255,255,.4)',deskBg:s.zone===k?'rgba(233,193,91,.15)':'rgba(255,255,255,.04)',deskBd:s.zone===k?'rgba(233,193,91,.4)':'rgba(255,255,255,.08)',tap:()=>this.setState({zone:k})}));
+
+    const q=s.q.toLowerCase().trim();
+    const searchResults=PANDALS.filter(p=>!q||pn(p).toLowerCase().includes(q)||p.zone.includes(q)).slice(0,14).map(p=>({displayName:pn(p),zLabel:zn(p.zone),crowdWord:cw(liveC(p)),arsalan:p.arsalan,km:p.km,tap:()=>this.setState({sel:p.n,screen:'pandal',prev:'search'})}));
+    const cardPandals=inZone.slice(0,5).map((p,i)=>({displayName:pn(p),dist:(0.3+i*0.22).toFixed(1)+' km',crowdWord:showCrowd?cw(liveC(p)):'',showCrowd,theme:p.theme,gradBg:CARD_GRADS[i%CARD_GRADS.length],num:i+1,imgUrl:'https://picsum.photos/seed/'+encodeURIComponent(p.n)+'/400/220',tap:()=>this.setState({sel:p.n,screen:'pandal',prev:'map'})}));
+
+    const selP=PANDALS.find(x=>x.n===s.sel)||PANDALS[6];
+    const sel={displayName:pn(selP),zLabel:zn(selP.zone),crowdWord:showCrowd?cw(liveC(selP)):'',bars:bars(showCrowd?liveC(selP):0),arsalan:selP.arsalan,km:selP.km,min:selP.min,wait:showCrowd?selP.wait:'—',queue:showCrowd?selP.queue:'—',theme:selP.theme,arsLat:selP.arsLat,arsLng:selP.arsLng,showCrowd};
+
+    // DAY PLANNER
+    const startHH=String(s.startHour).padStart(2,'0');
+    const startMM=String(s.startMin).padStart(2,'0');
+    const h12=String((s.startHour%12)||12).padStart(2,'0');
+    const isAM=s.startHour<12;
+    const amBg=isAM?'#E9C15B':'rgba(255,255,255,.08)';
+    const amFg=isAM?'#111':'rgba(255,255,255,.4)';
+    const pmBg=isAM?'rgba(255,255,255,.08)':'#E9C15B';
+    const pmFg=isAM?'rgba(255,255,255,.4)':'#111';
+    const minTens=Math.floor(s.startMin/10);
+    const minUnits=s.startMin%10;
+    const onHourWheel=(e)=>{e.preventDefault();this.setState(st=>({startHour:(st.startHour+(e.deltaY>0?-1:1)+24)%24}));};
+    const onMinTensWheel=(e)=>{e.preventDefault();this.setState(st=>({startMin:Math.min(59,Math.max(0,st.startMin+(e.deltaY>0?-10:10)))}));};
+    const onMinUnitsWheel=(e)=>{e.preventDefault();this.setState(st=>({startMin:(st.startMin+(e.deltaY>0?-1:1)+60)%60}));};
+    const incMinTens=()=>this.setState(st=>({startMin:Math.min(59,st.startMin+10)}));
+    const decMinTens=()=>this.setState(st=>({startMin:Math.max(0,st.startMin-10)}));
+    const incMinUnits=()=>this.incStartM(),decMinUnits=()=>this.decStartM();
+    const setAM=()=>this.setAM(),setPM=()=>this.setPM();
+    const durH=Math.floor(s.durMin/60),durM=s.durMin%60;
+    const durDisplayBig=durH>0?durH+'h':(durM+'m');
+    const durDisplaySub=durH>0&&durM>0?(durM+' min'):(durH>0?'hours':'minutes');
+    const timeSlots=[];const durSlots=[];
+
+    // Compute planner stops: ~35 min per pandal, 45 min Arsalan
+    const MIN_PER_PANDAL=35,ARS_MIN=45,WALK_MIN=10;
+    const fmt=m=>{const h=Math.floor(m/60)%24,mn=m%60;return (h<10?'0':'')+h+':'+(mn<10?'0':'')+mn;};
+    let budget=s.durMin,cur=s.startHour*60+s.startMin,stops=[];
+    const avail=inZone.slice();let arsInserted=false;
+    const arsIcon=React.createElement('img',{src:'./uploads/download.png',style:{width:26,height:26,objectFit:'contain',filter:'invert(1) hue-rotate(180deg) brightness(1.4) saturate(1.3)'}});
+    const makeArs=(arsP,c)=>({name:'Arsalan '+arsP.arsalan,detail:t('Biryani break · 45 min','বিরিয়ানি বিরতি · ৪৫ মিনিট'),time:fmt(c),endTime:fmt(c+ARS_MIN),dur:'45 min',timeColor:'#E9C15B',dotBg:'rgba(233,193,91,.12)',dotBd:'rgba(233,193,91,.4)',cardBg:'rgba(233,193,91,.06)',cardBd:'rgba(233,193,91,.18)',isArsalan:true,dotIcon:arsIcon});
+    const makePandal=(p,i,c)=>({name:pn(p),detail:p.theme,time:fmt(c),endTime:fmt(c+MIN_PER_PANDAL),dur:'35 min',timeColor:'rgba(255,255,255,.35)',dotBg:'rgba(255,255,255,.05)',dotBd:'rgba(255,255,255,.1)',cardBg:'rgba(255,255,255,.04)',cardBd:'rgba(255,255,255,.07)',isArsalan:false,dotIcon:React.createElement('span',{style:{fontSize:'13px',fontWeight:800,color:'#E9C15B'}},i+1)});
+    for(let i=0;i<avail.length;i++){
+      if(budget<=0)break;
+      if(!arsInserted&&budget<=(MIN_PER_PANDAL+WALK_MIN)&&budget>=(ARS_MIN+WALK_MIN)){
+        stops.push(makeArs(avail[Math.max(0,i-1)],cur));
+        cur+=ARS_MIN+WALK_MIN;budget-=(ARS_MIN+WALK_MIN);arsInserted=true;
+      }
+      stops.push(makePandal(avail[i],i,cur));
+      cur+=MIN_PER_PANDAL+WALK_MIN;budget-=(MIN_PER_PANDAL+WALK_MIN);
+    }
+    if(!arsInserted&&stops.length>0){
+      const insertAt=Math.ceil(stops.length/2);
+      const insTime=s.startHour*60+s.startMin+insertAt*(MIN_PER_PANDAL+WALK_MIN);
+      stops.splice(insertAt,0,makeArs(inZone[0],insTime));
+    }
+    const endMin=s.startHour*60+s.durMin;
+    const endH=Math.floor(endMin/60)%24,endM=endMin%60;
+    const pandalaCount=stops.filter(x=>!x.isArsalan).length;
+    const plannerSummary=pandalaCount+t(` pandals · ending ~`+((endH<10?'0':'')+endH+':'+(endM<10?'0':'')+endM),' টি পুজো · শেষ ~'+((endH<10?'0':'')+endH+':'+(endM<10?'0':'')+endM));
+
+    // Google Maps full trip URL
+    const tripPandals=stops.filter(x=>!x.isArsalan).map(x=>PANDALS.find(p=>p.n===x.name||p.bn===x.name)||PANDALS[6]);
+    const arsalanStop=selP;
+    const mapsUrl=this._mapsUrl(tripPandals.length?tripPandals:inZone.slice(0,4),arsalanStop.arsLat,arsalanStop.arsLng,arsalanStop.arsalan);
+
+    const selArsalanPhoto=(()=>{const admin=window.__adminData;if(admin){for(const z of admin.zones||[]){const a=z.arsalan?.find(a=>a.shortName===selP.arsalan||'Arsalan '+a.shortName===selP.arsalan);if(a?.photoUrl)return a.photoUrl;}}return 'https://picsum.photos/seed/arsalan-'+encodeURIComponent(selP.arsalan||'biryani')+'/400/700';})();
+    const zoneArs=ARSALAN_LIST.find(a=>inZone[0]&&a.lat===inZone[0].arsLat)||ARSALAN_LIST[0];
+    const zoneArsPhoto=(()=>{const admin=window.__adminData;if(admin){for(const z of admin.zones||[]){const a=z.arsalan?.find(a=>a.lat===zoneArs.lat);if(a?.photoUrl)return a.photoUrl;}}return 'https://picsum.photos/seed/arsalan-'+encodeURIComponent(zoneArs.short||'biryani')+'/400/300';})();
+    const selPandal=PANDALS.find(p=>p.n===s.sel)||PANDALS[6];
+    const selPandalPhoto='https://picsum.photos/seed/'+encodeURIComponent(selPandal.n)+'/400/220';
+    const waitBars=[8,14,20,32,36,28,18,12].map((v,i)=>{const live=i===4?Math.round(v*(1+(Math.random()-.5)*.3)):v;return {h:Math.round(live/36*52)+'px',c:i===4?'#E9C15B':live>20?'rgba(233,193,91,.4)':'rgba(255,255,255,.1)'};});
+    const liveUsers=Math.round((liveC(selP)||3)*18+Math.random()*12|0);
+    const menu=[{n:t('Mutton biryani','মটন বিরিয়ানি'),price:'₹340'},{n:t('Chicken chaap','চিকেন চাপ'),price:'₹260'},{n:t('Kebab platter','কাবাব প্লেটার'),price:'₹420'},{n:t('Firni','ফিরনি'),price:'₹90'}];
+    const friends=s.simFriends.map(f=>({...f,ringBg:f.c.startsWith('rgba')?'rgba(255,255,255,.05)':`${f.c}22`}));
+    const filterChips=[{label:t('< 1 km','১ কিমির মধ্যে'),on:true},{label:t('Short queue','ছোট লাইন'),on:false},{label:t('Sabeki','সাবেকি'),on:false},{label:t('Open late','রাতে খোলা'),on:false}].map(c=>({...c,bd:c.on?'#E9C15B':'rgba(255,255,255,.1)',bg:c.on?'rgba(233,193,91,.15)':'transparent',fg:c.on?'#E9C15B':'rgba(255,255,255,.45)'}));
+
+    const activeTab=s.screen==='map'||(s.screen==='pandal'&&s.prev==='map')||(s.screen==='arsalan'&&s.prev==='map')?'map':s.screen==='search'?'search':s.screen==='friends'?'friends':['pandal','arsalan','home','planner','route'].includes(s.screen)?'home':'map';
+    const tc=k=>k===activeTab?'#E9C15B':'rgba(255,255,255,.38)';
+    const tbg=k=>k===activeTab?'rgba(233,193,91,.14)':'transparent';
+    const mk=(paths,k)=>React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',style:{display:'block'}},...paths.map(([el,pr])=>React.createElement(el,{...pr,stroke:pr.fill?undefined:tc(k),fill:pr.fill?tc(k):undefined,strokeWidth:pr.sw||1.8,strokeLinecap:'round',strokeLinejoin:'round'})));
+    const mkTab=(paths,k)=>React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',style:{display:'block',flexShrink:0}},...paths.map(([el,pr])=>React.createElement(el,{...pr,stroke:k===activeTab?'#111':tc(k),fill:pr.fill?k===activeTab?'#111':tc(k):undefined,strokeWidth:pr.sw||1.8,strokeLinecap:'round',strokeLinejoin:'round'})));
+    const mkTabDesk=(paths,k)=>React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',style:{display:'block',flexShrink:0}},...paths.map(([el,pr])=>React.createElement(el,{...pr,stroke:k===activeTab?'#E9C15B':'rgba(255,255,255,.35)',fill:pr.fill?k===activeTab?'#E9C15B':'rgba(255,255,255,.35)':undefined,strokeWidth:pr.sw||1.8,strokeLinecap:'round',strokeLinejoin:'round'})));
+    const tabs=[
+      {k:'home',label:txt.tabCrawl,active:activeTab==='home',activeBd:activeTab==='home'?'#E9C15B':'transparent',activeLbl:activeTab==='home'?'#E9C15B':'rgba(255,255,255,.3)',bg:activeTab==='home'?'#E9C15B':'transparent',flex:activeTab==='home'?3:1,tap:()=>this.go('planner'),icon:mkTab([['circle',{cx:12,cy:12,r:10}],['path',{d:'M12 6v6l4 2'}]],'home'),deskIcon:mkTabDesk([['circle',{cx:12,cy:12,r:10}],['path',{d:'M12 6v6l4 2'}]],'home')},
+      {k:'map',label:txt.tabMap,active:activeTab==='map',activeBd:activeTab==='map'?'#E9C15B':'transparent',activeLbl:activeTab==='map'?'#E9C15B':'rgba(255,255,255,.3)',bg:activeTab==='map'?'#E9C15B':'transparent',flex:activeTab==='map'?3:1,tap:()=>this.go('map'),icon:mkTab([['path',{d:'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'}],['circle',{cx:12,cy:10,r:3}]],'map'),deskIcon:mkTabDesk([['path',{d:'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'}],['circle',{cx:12,cy:10,r:3}]],'map')},
+      {k:'search',label:txt.tabFind,active:activeTab==='search',activeBd:activeTab==='search'?'#E9C15B':'transparent',activeLbl:activeTab==='search'?'#E9C15B':'rgba(255,255,255,.3)',bg:activeTab==='search'?'#E9C15B':'transparent',flex:activeTab==='search'?3:1,tap:()=>this.go('search'),icon:mkTab([['circle',{cx:11,cy:11,r:8}],['path',{d:'M16.5 16.5L21 21'}]],'search'),deskIcon:mkTabDesk([['circle',{cx:11,cy:11,r:8}],['path',{d:'M16.5 16.5L21 21'}]],'search')},
+      {k:'friends',label:txt.tabGroup,active:activeTab==='friends',activeBd:activeTab==='friends'?'#E9C15B':'transparent',activeLbl:activeTab==='friends'?'#E9C15B':'rgba(255,255,255,.3)',bg:activeTab==='friends'?'#E9C15B':'transparent',flex:activeTab==='friends'?3:1,tap:()=>this.go('friends'),icon:mkTab([['path',{d:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'}],['circle',{cx:9,cy:7,r:4}],['path',{d:'M23 21v-2a4 4 0 0 0-3-3.87'}],['path',{d:'M16 3.13a4 4 0 0 1 0 7.75'}]],'friends'),deskIcon:mkTabDesk([['path',{d:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'}],['circle',{cx:9,cy:7,r:4}],['path',{d:'M23 21v-2a4 4 0 0 0-3-3.87'}],['path',{d:'M16 3.13a4 4 0 0 1 0 7.75'}]],'friends')},
+    ];
+
+    return {
+      txt,sel,plan,zones,cardPandals,searchResults,friends,menu,waitBars,filterChips,tabs,plannerStops:stops,plannerSummary,timeSlots,durSlots,liveUsers,selArsalanPhoto,isMobile,isDesktop:s.isDesktop,zoneArsPhoto,selPandalPhoto,nearArsalanFull:'Arsalan '+nearSel.arsalan,
+      startHH,startMM,h12,isAM,amBg,amFg,pmBg,pmFg,minTens,minUnits,durDisplayBig,durDisplaySub,showCrowd,
+      onHourWheel,onMinTensWheel,onMinUnitsWheel,incMinTens,decMinTens,incMinUnits,decMinUnits,setAM,setPM,
+      q:s.q,showTabBar:!['route'].includes(s.screen),
+      nearArsalan:nearSel.arsalan,nearKm:nearSel.km,nearMin:nearSel.min,zonePandals:inZone.length,
+      langLabel:l==='en'?'বাং':'ENG',langColor:l==='en'?'#f59e0b':'#4285f4',
+      shareTrack:s.share?'#E9C15B':'rgba(255,255,255,.14)',shareKnob:s.share?'22px':'4px',
+      isHome:false,isMap:s.isDesktop||['map','pandal','arsalan'].includes(s.screen),isSearch:s.screen==='search',deskDefault:s.isDesktop&&!['planner','search','friends','pandal'].includes(s.screen),
+      isPandal:s.screen==='pandal',isRoute:s.screen==='route',isArsalan:s.screen==='arsalan',
+      isFriends:s.screen==='friends',isPlanner:['planner','home'].includes(s.screen),
+      mapRef:this.mapRef,
+      goHome:()=>this.go('home'),goMap:()=>this.go('map'),goSearch:()=>this.go('search'),
+      goFriends:()=>this.go('friends'),goArsalan:()=>this.go('arsalan'),goRoute:()=>this.go('route'),
+      goPlanner:()=>this.go('planner'),
+      back:()=>this.setState(st=>({screen:st.prev||'map',prev:'map'})),
+      closeArsalan:()=>this.closeSheet('arsalan'),
+      closePandal:()=>this.closeSheet('pandal'),
+      arsalanAnim:s.closingSheet==='arsalan'?'sheetDown .26s cubic-bezier(.4,0,1,1) forwards':'sheetUp .28s cubic-bezier(.22,1,.36,1)',
+      pandalAnim:s.closingSheet==='pandal'?'sheetDown .26s cubic-bezier(.4,0,1,1) forwards':'sheetUp .28s cubic-bezier(.22,1,.36,1)',
+      recenter:()=>{if(this.lmap)this.lmap.flyTo(ZONE_C[this.state.zone],14,{duration:.8});},
+      handoff:()=>window.open(mapsUrl,'_blank'),
+      launchTrip:()=>window.open(mapsUrl,'_blank'),
+      toggleLang:()=>this.setState(st=>({lang:st.lang==='en'?'bn':'en'})),
+      toggleShare:()=>this.setState(st=>({share:!st.share}),()=>this._updateFriendMarkers()),
+      setupName:s.setupName,setupColor:s.setupColor,
+      hasIdentity:!!s.setupName.trim()&&!s.editingIdentity,
+      notHasIdentity:!s.setupName.trim()||s.editingIdentity,
+      onSetupName:(e)=>this.setState({setupName:e.target.value.slice(0,10)}),
+      saveIdentity:()=>{const n=s.setupName.trim();if(!n)return;localStorage.setItem('pujoMyName',n);localStorage.setItem('pujoMyColor',s.setupColor);this.setState({setupName:n,editingIdentity:false});},
+      editIdentity:()=>this.setState({editingIdentity:true}),
+      deskArsExpanded:s.deskArsExpanded,notDeskArsExpanded:!s.deskArsExpanded,
+      arsExpandLabel:s.deskArsExpanded?'▲ Less':'▼ Details',
+      toggleDeskArs:()=>this.setState(st=>({deskArsExpanded:!st.deskArsExpanded})),
+      deskGoRoute:()=>window.open(mapsUrl,'_blank'),
+      setupColors:['#E9C15B','#f59e0b','#E8450A','#ff6b6b','#4285f4','#00bcd4','#4caf50','#8bc34a','#9c27b0','#e91e63','#ff9800','#607d8b','#795548','#00acc1','#43a047','#ab47bc'].map(c=>({c,bd:c===s.setupColor?'#fff':'transparent',tap:()=>this.setState({setupColor:c})})),
+      onQ:(e)=>this.setState({q:e.target.value}),
+      incStartH:()=>this.incStartH(),decStartH:()=>this.decStartH(),
+      incStartM:()=>this.incStartM(),decStartM:()=>this.decStartM(),
+      incDur:()=>this.incDur(),decDur:()=>this.decDur(),
+    };
+  }
+}
+</script>
+</body>
+</html>
