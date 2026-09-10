@@ -1,9 +1,11 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import { buildPlan, fmtTime, googleMapsRoute } from "@/lib/helpers";
 import { IconBack } from "./icons";
+import dynamic from "next/dynamic";
+const RouteMapPreview = dynamic(() => import("./RouteMapPreview"), { ssr: false });
 
 const Chevron = ({ up = true, dim = false }: { up?: boolean; dim?: boolean }) => (
   <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
@@ -15,6 +17,7 @@ export default function PlannerScreen() {
   const {
     lang, back, startHour, startMin, durMin, zone, pandals, arsalans, user,
     incStartH, incMinTens, incMinUnits, setAP, incDur, routeMode, setRouteMode,
+    setRouteStops,
   } = useApp();
   const txt = t(lang);
   const h12 = ((startHour + 11) % 12) + 1;
@@ -26,6 +29,15 @@ export default function PlannerScreen() {
     () => buildPlan(pandals.filter((p) => p.zoneId === zone), arsalans, startHour, startMin, durMin, user, routeMode),
     [pandals, arsalans, zone, startHour, startMin, durMin, user, routeMode]
   );
+  // Publish the plan to the shared route store so the mini-map can draw it,
+  // and clear on unmount so the main map's polyline resets afterwards.
+  useEffect(() => {
+    setRouteStops([
+      { lat: user.lat, lng: user.lng, label: "You" },
+      ...plan.map((s) => ({ lat: s.lat, lng: s.lng, label: s.name })),
+    ]);
+    return () => setRouteStops([]);
+  }, [plan, user.lat, user.lng, setRouteStops]);
   const endMinTotal = startHour * 60 + startMin + durMin;
   const summary = `${fmtTime(startHour * 60 + startMin)} → ${fmtTime(endMinTotal)}`;
   const durH = Math.floor(durMin / 60);
@@ -136,6 +148,11 @@ export default function PlannerScreen() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pt-2 pb-2">
+        {plan.length > 0 && (
+          <div className="mb-3">
+            <RouteMapPreview height={160} />
+          </div>
+        )}
         {plan.map((s, i) => {
           const isAr = s.kind === "arsalan";
           return (

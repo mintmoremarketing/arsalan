@@ -3,6 +3,8 @@ import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import { haversineKm, driveMin, navigateUrl } from "@/lib/helpers";
 import { IconBack } from "./icons";
+import dynamic from "next/dynamic";
+const RouteMapPreview = dynamic(() => import("./RouteMapPreview"), { ssr: false });
 
 export default function RouteScreen() {
   const { lang, back, pandals, arsalans, selPandalId, selArsalanId, user, routeMode, reportChosenArsalan } = useApp();
@@ -67,6 +69,10 @@ export default function RouteScreen() {
           {p ? (lang === "en" ? p.name : p.nameBn) : "Your location"}{" "}
           <span style={{ color: "rgba(255,255,255,.18)" }}>→</span>{" "}
           <strong style={{ color: "#f0eeec", fontWeight: 900 }}>Arsalan {a?.shortName}</strong>
+        </div>
+        {/* Live road preview */}
+        <div className="mb-4">
+          <RouteMapPreview height={180} />
         </div>
         <div
           className="grid grid-cols-3 rounded-[14px] overflow-hidden mb-5"

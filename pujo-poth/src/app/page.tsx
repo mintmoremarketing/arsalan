@@ -76,16 +76,20 @@ export default function Home() {
     return () => clearInterval(iv);
   }, [share, identity, user]);
 
-  // Mobile: draw route to selected pandal (and its Arsalan) on main map
+  // Mobile: draw a route polyline whenever a pandal is selected (any screen
+  // where the map is either behind the sheet or peeking above it). The pandal
+  // sheet only covers ~2/3 of the screen, so the top slice of the map + the
+  // route line remain visible; on the Route hand-off screen we also render a
+  // mini-map preview from the same routeStops.
   useEffect(() => {
-    if (isDesktop) return; // desktop handles this itself
+    if (isDesktop) return;
     const p = pandals.find((x) => x.id === selPandalId);
-    if (screen === "map" && p) {
+    if (p && (screen === "map" || screen === "pandal" || screen === "route")) {
       const ars = arsalans.find((a) => a.id === p.arsalanId);
       const stops = [{ lat: user.lat, lng: user.lng, label: "You" }, { lat: p.lat, lng: p.lng, label: p.name }];
       if (ars) stops.push({ lat: ars.lat, lng: ars.lng, label: `Arsalan ${ars.shortName}` });
       setRouteStops(stops);
-    } else if (screen === "map") {
+    } else if (!p && screen === "map") {
       setRouteStops([]);
     }
   }, [isDesktop, selPandalId, screen, pandals, arsalans, user, setRouteStops]);
