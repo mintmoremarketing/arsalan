@@ -22,6 +22,8 @@ export default function MapView({ heightClass = "absolute inset-0" }: { heightCl
   const setSelArsalan = useApp((s) => s.setSelArsalan);
   const go = useApp((s) => s.go);
   const [zoom, setZoom] = useState(13);
+  const identity = useApp((s) => s.identity);
+  const userColor = identity?.color || "#4285f4";
 
   // Init map
   useEffect(() => {
@@ -49,16 +51,7 @@ export default function MapView({ heightClass = "absolute inset-0" }: { heightCl
       // Track zoom so we can progressively reveal markers.
       setZoom(m.getZoom());
       m.on("zoomend", () => setZoom(m.getZoom()));
-      // User pulse dot
-      const userIcon = L.divIcon({
-        className: "",
-        html: `<div style="position:relative;width:48px;height:48px;transform:translate(-50%,-50%)">
-          <div style="position:absolute;inset:0;border-radius:50%;background:rgba(66,133,244,.3);animation:dotPulse 2.2s ease-out infinite"></div>
-          <div style="position:absolute;inset:15px;border-radius:50%;background:#4285f4;border:2.5px solid #fff;box-shadow:0 2px 10px rgba(66,133,244,.7)"></div>
-        </div>`,
-        iconSize: [0, 0],
-      });
-      userMarkerRef.current = L.marker([user.lat, user.lng], { icon: userIcon, interactive: false, zIndexOffset: 1000 }).addTo(m);
+      userMarkerRef.current = L.marker([user.lat, user.lng], { icon: makeUserIcon(L, userColor), interactive: false, zIndexOffset: 1000 }).addTo(m);
     })();
     return () => {
       cancelled = true;
@@ -209,6 +202,17 @@ export default function MapView({ heightClass = "absolute inset-0" }: { heightCl
     mk.setLatLng([user.lat, user.lng]);
   }, [user.lat, user.lng]);
 
+  // Re-skin the user marker whenever the identity colour changes.
+  useEffect(() => {
+    (async () => {
+      const mk = userMarkerRef.current;
+      const m = mapRef.current;
+      if (!mk || !m || !(m as any)._container?.isConnected) return;
+      const L = (await import("leaflet")).default;
+      mk.setIcon(makeUserIcon(L, userColor));
+    })();
+  }, [userColor]);
+
   // OSRM road-route polyline
   useEffect(() => {
     let cancelled = false;
@@ -265,4 +269,24 @@ export default function MapView({ heightClass = "absolute inset-0" }: { heightCl
   }, [routeStops, routeMode]);
 
   return <div ref={ref} className={heightClass} style={{ background: "#111" }} />;
+}
+
+// Blue Google-style dot by default; recolored to the user's Group identity
+// colour when they've set one. Alpha blend of the same hex for the pulse ring.
+function makeUserIcon(L: typeof import("leaflet"), color: string) {
+  const c = color.replace("#", "");
+  const rgba = (a: number) => {
+    const r = parseInt(c.slice(0, 2), 16);
+    const g = parseInt(c.slice(2, 4), 16);
+    const b = parseInt(c.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
+  return L.divIcon({
+    className: "",
+    html: `<div style="position:relative;width:48px;height:48px;transform:translate(-50%,-50%)">
+      <div style="position:absolute;inset:0;border-radius:50%;background:${rgba(0.3)};animation:dotPulse 2.2s ease-out infinite"></div>
+      <div style="position:absolute;inset:15px;border-radius:50%;background:${color};border:2.5px solid #fff;box-shadow:0 2px 10px ${rgba(0.7)}"></div>
+    </div>`,
+    iconSize: [0, 0],
+  });
 }

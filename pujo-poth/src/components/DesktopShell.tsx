@@ -74,15 +74,15 @@ export default function DesktopShell() {
                   style={{
                     padding: "8px 4px",
                     borderWidth: 1.5, borderStyle: "solid",
-                    borderColor: active ? "#E9C15B" : "rgba(255,255,255,.08)",
-                    background: active ? "rgba(233,193,91,.12)" : "transparent",
-                    color: active ? "#E9C15B" : "rgba(255,255,255,.6)",
+                    borderColor: active ? (z.color || "#E9C15B") : "rgba(255,255,255,.08)",
+                    background: active ? tint(z.color || "#E9C15B", 0.12) : "transparent",
+                    color: active ? (z.color || "#E9C15B") : "rgba(255,255,255,.6)",
                     fontSize: 10, fontWeight: 700, cursor: "pointer",
                     textAlign: "center", lineHeight: 1.15,
                     minWidth: 0, overflow: "hidden",
                   }}
                 >
-                  <div style={{ fontSize: 15, fontWeight: 800, color: active ? "#E9C15B" : "#f0eeec", lineHeight: 1, marginBottom: 3 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: active ? (z.color || "#E9C15B") : "#f0eeec", lineHeight: 1, marginBottom: 3 }}>
                     {zoneCounts[z.id]}
                   </div>
                   <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -661,6 +661,16 @@ function GroupTab() {
 }
 
 // ── Small helpers ───────────────────────────────────────────────────────────
+// Hex `#rrggbb` → `rgba(r, g, b, alpha)` for tinted backgrounds
+function tint(hex: string, alpha: number) {
+  const c = hex.replace("#", "");
+  if (c.length !== 6) return `rgba(233,193,91,${alpha})`;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function ModePill({ mode, onChange }: { mode: "driving" | "walking"; onChange: (m: "driving" | "walking") => void }) {
   return (
     <div className="flex" style={{ background: "rgba(255,255,255,.06)", borderRadius: 8, padding: 2 }}>

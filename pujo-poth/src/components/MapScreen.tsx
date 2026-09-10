@@ -117,7 +117,7 @@ export default function MapScreen() {
                 padding: "5px 12px",
                 fontSize: 12,
                 border: 0,
-                background: active ? "#E9C15B" : "rgba(12,12,12,.75)",
+                background: active ? (z.color || "#E9C15B") : "rgba(12,12,12,.75)",
                 color: active ? "#111" : "rgba(255,255,255,.7)",
                 whiteSpace: "nowrap",
               }}
