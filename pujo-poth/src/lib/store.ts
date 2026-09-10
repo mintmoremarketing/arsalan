@@ -39,7 +39,7 @@ interface State {
   setSelPandal: (id: string | null) => void;
   setSelArsalan: (id: string | null) => void;
   setQ: (q: string) => void;
-  setShare: (v: boolean) => void;
+  setShare: (v: boolean) => Promise<void>;
   incStartH: (dir: number) => void;
   incMinTens: (dir: number) => void;
   incMinUnits: (dir: number) => void;
@@ -138,13 +138,20 @@ export const useApp = create<State>((set, get) => ({
   setSelPandal: (id) => set({ selPandalId: id }),
   setSelArsalan: (id) => set({ selArsalanId: id }),
   setQ: (q) => set({ q }),
-  setShare: (v) => {
+  setShare: async (v) => {
     set({ share: v });
-    if (v) get().pushMyPosition();
-    else {
+    if (v) {
+      await get().pushMyPosition();
+    } else {
+      // Fully wait for the DELETE to land — otherwise a pushMyPosition() call
+      // that was already in flight may re-upsert the row *after* our delete
+      // and revive the dot on everyone else's map.
       const id = get().identity?.id;
       const c = sb();
-      if (id && c) c.from("presence").delete().eq("identity_id", id);
+      if (id && c) {
+        const { error } = await c.from("presence").delete().eq("identity_id", id);
+        if (error) console.warn("presence delete failed", error.message);
+      }
     }
   },
   incStartH: (dir) =>
@@ -369,6 +376,10 @@ export const useApp = create<State>((set, get) => ({
     const c = sb();
     const id = get().identity?.id;
     if (!c || !id) return;
+    // Guard against the classic race: a setInterval or geolocation callback
+    // fires just after the user flips share off, and the upsert brings the
+    // presence row back from the dead. Bail if we're no longer sharing.
+    if (!get().share) return;
     const u = get().user;
     // Attach "at" label = nearest pandal/arsalan name
     const all = [
