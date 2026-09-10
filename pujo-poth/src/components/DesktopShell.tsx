@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { haversineKm, driveMin, pandalPhoto, crowdWord, crowdBars, buildPlan, fmtTime, googleMapsRoute, pickBestArsalan, navigateUrl } from "@/lib/helpers";
 import { MENU_SAMPLE } from "@/lib/seed";
 import { IconSearch, IconLocate, IconRoute, IconMapPin } from "./icons";
+import CrewCodeBlock from "./CrewCodeBlock";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
 
@@ -637,12 +638,13 @@ function GroupTab() {
           <div style={{ position: "absolute", top: 4, left: share ? 20 : 4, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
         </button>
       </div>
-      <button onClick={() => setEditingIdentity(true)} style={{ background: "transparent", border: 0, fontSize: 11, color: "rgba(255,255,255,.35)", textDecoration: "underline", cursor: "pointer", marginBottom: 8 }}>
+      <button onClick={() => setEditingIdentity(true)} style={{ background: "transparent", border: 0, fontSize: 11, color: "rgba(255,255,255,.35)", textDecoration: "underline", cursor: "pointer", marginBottom: 12 }}>
         Edit name or colour
       </button>
+      <CrewCodeBlock />
       {friends.length === 0 && (
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)", padding: "12px 0" }}>
-          No friends sharing yet. Share this app with them.
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,.35)", padding: "8px 0" }}>
+          No friends sharing yet. Send them the crew code above.
         </div>
       )}
       {friends.map((f) => (

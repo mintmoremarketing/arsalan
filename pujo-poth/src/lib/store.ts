@@ -18,6 +18,7 @@ interface State {
   startMin: number;
   durMin: number;
   identity: Identity | null;
+  groupCode: string | null;
   editingIdentity: boolean;
   isDesktop: boolean;
   closingSheet: null | "pandal" | "arsalan";
@@ -48,6 +49,9 @@ interface State {
   setRouteMode: (m: "driving" | "walking") => void;
   recenter: () => void;
   saveIdentity: (name: string, color: string) => Promise<void>;
+  createGroup: () => string;
+  joinGroup: (code: string) => void;
+  leaveGroup: () => void;
   setEditingIdentity: (v: boolean) => void;
   setDesktop: (v: boolean) => void;
   closePandal: () => void;
@@ -60,6 +64,7 @@ interface State {
 }
 
 const IDENTITY_KEY = "pujoPothIdentity";
+const GROUP_KEY = "pujoPothGroupCode";
 
 function loadIdentity(): Identity | null {
   if (typeof window === "undefined") return null;
@@ -69,6 +74,24 @@ function loadIdentity(): Identity | null {
   } catch {
     return null;
   }
+}
+function loadGroup(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(GROUP_KEY);
+  } catch {
+    return null;
+  }
+}
+function makeGroupCode(): string {
+  // 6-char ambiguity-free alphabet
+  const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 6; i++) out += A[Math.floor(Math.random() * A.length)];
+  return out;
+}
+export function normalizeGroupCode(raw: string): string {
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
 }
 
 export const useApp = create<State>((set, get) => ({
@@ -84,6 +107,7 @@ export const useApp = create<State>((set, get) => ({
   startMin: 30,
   durMin: 240,
   identity: loadIdentity(),
+  groupCode: loadGroup(),
   editingIdentity: false,
   isDesktop: false,
   closingSheet: null,
@@ -160,6 +184,28 @@ export const useApp = create<State>((set, get) => ({
     }
   },
   setEditingIdentity: (v) => set({ editingIdentity: v }),
+  createGroup: () => {
+    const code = makeGroupCode();
+    if (typeof window !== "undefined") localStorage.setItem(GROUP_KEY, code);
+    set({ groupCode: code });
+    return code;
+  },
+  joinGroup: (raw) => {
+    const code = normalizeGroupCode(raw);
+    if (!code) return;
+    if (typeof window !== "undefined") localStorage.setItem(GROUP_KEY, code);
+    set({ groupCode: code });
+    // Kick a resubscribe to the new group's presence
+    setTimeout(() => get().subscribeFriends(), 0);
+  },
+  leaveGroup: () => {
+    if (typeof window !== "undefined") localStorage.removeItem(GROUP_KEY);
+    set({ groupCode: null, friends: [] });
+    // Drop our presence row so we vanish from the old group
+    const id = get().identity?.id;
+    const c = sb();
+    if (id && c) c.from("presence").delete().eq("identity_id", id);
+  },
   setDesktop: (v) => set({ isDesktop: v }),
   closePandal: () => {
     set({ closingSheet: "pandal" });
@@ -221,7 +267,11 @@ export const useApp = create<State>((set, get) => ({
     const c = sb();
     if (!c) return () => {};
     const load = async () => {
-      const { data: pres } = await c.from("presence").select("*");
+      // Only rows in the current group (if any). Without a group, show nobody
+      // — everyone-can-see-everyone was noisy and doesn't respect privacy.
+      const grp = get().groupCode;
+      const q = c.from("presence").select("*");
+      const { data: pres } = grp ? await q.eq("group_code", grp) : await q.is("group_code", null);
       if (!pres) return;
       const { data: idents } = await c.from("identities").select("*");
       const identsMap = new Map((idents || []).map((i) => [i.id, i]));
@@ -307,7 +357,7 @@ export const useApp = create<State>((set, get) => ({
     const at_label = nearest && nearest.d < 0.6 ? `at ${nearest.name}` : "on the move";
     await c
       .from("presence")
-      .upsert({ identity_id: id, lat: u.lat, lng: u.lng, at_label, updated_at: new Date().toISOString() });
+      .upsert({ identity_id: id, lat: u.lat, lng: u.lng, at_label, group_code: get().groupCode, updated_at: new Date().toISOString() });
   },
 }));
 

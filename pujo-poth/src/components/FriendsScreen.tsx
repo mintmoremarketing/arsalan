@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useApp, timeAgo } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import { IconBack } from "./icons";
+import CrewCodeBlock from "./CrewCodeBlock";
 
 const COLORS = [
   "#E9C15B", "#f5837c", "#4285f4", "#4caf50",
@@ -129,9 +130,10 @@ export default function FriendsScreen() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-5 pb-24">
+            <CrewCodeBlock />
             {friends.length === 0 && (
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,.35)", padding: "20px 0" }}>
-                No friends sharing yet. Share this app with them and turn on their dot.
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,.35)", padding: "12px 0" }}>
+                No friends sharing yet. Share the crew code above and turn on their dot.
               </div>
             )}
             {friends.map((f) => (

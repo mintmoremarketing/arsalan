@@ -18,6 +18,16 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     fetch("/api/hit", { method: "POST" }).catch(() => {});
+    // ?join=CODE joins the sender's crew before subscribing to presence
+    const params = new URLSearchParams(window.location.search);
+    const j = params.get("join");
+    if (j) {
+      useApp.getState().joinGroup(j);
+      // Clean the URL so a refresh doesn't rejoin (they're already saved)
+      const url = new URL(window.location.href);
+      url.searchParams.delete("join");
+      window.history.replaceState({}, "", url.toString());
+    }
     const mq = window.matchMedia("(min-width: 1024px)");
     const sync = () => setDesktop(mq.matches);
     sync();
