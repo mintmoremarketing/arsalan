@@ -176,15 +176,14 @@ export default function MapScreen() {
               setSelArsalan(target.id);
               go("arsalan");
             }}
-            className="mx-auto mb-2.5 flex items-center gap-3 rounded-2xl border"
+            className="flex items-center gap-3 rounded-2xl border"
             style={{
-              padding: "13px 20px",
-              background: selArsalanId ? "rgba(233,193,91,.15)" : "rgba(10,10,10,.88)",
+              padding: "14px 22px",
+              margin: "0 14px 12px",
+              width: "calc(100% - 28px)",
+              background: "rgba(10,10,10,.88)",
               backdropFilter: "blur(16px)",
-              borderColor: selArsalanId ? "#E9C15B" : "rgba(233,193,91,.35)",
-              boxShadow: selArsalanId ? "0 4px 20px rgba(233,193,91,.35)" : undefined,
-              transition: "background .2s, border-color .2s, box-shadow .2s",
-              maxWidth: "calc(100% - 28px)",
+              borderColor: "rgba(233,193,91,.35)",
               display: "flex",
             }}
           >
@@ -229,10 +228,8 @@ export default function MapScreen() {
               }}
               className="flex-none w-[220px] rounded-[18px] overflow-hidden cursor-pointer border"
               style={{
-                background: selected ? "rgba(233,193,91,.14)" : "rgba(255,255,255,.07)",
-                borderColor: selected ? "#E9C15B" : "rgba(255,255,255,.08)",
-                boxShadow: selected ? "0 4px 20px rgba(233,193,91,.35)" : undefined,
-                transition: "background .2s, border-color .2s, box-shadow .2s",
+                background: "rgba(255,255,255,.07)",
+                borderColor: "rgba(255,255,255,.08)",
                 scrollSnapAlign: "center",
               }}
             >
