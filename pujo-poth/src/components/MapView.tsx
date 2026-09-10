@@ -154,13 +154,17 @@ export default function MapView({ heightClass = "absolute inset-0" }: { heightCl
         });
 
       friends.forEach((f) => {
+        const safeName = f.name.replace(/[<>"']/g, "");
         const icon = L.divIcon({
           className: "",
-          html: `<div class="friend-dot" style="background:${f.color}"></div>`,
+          html: `<div class="friend-marker">
+            <div class="friend-dot" style="background:${f.color}"></div>
+            <div class="friend-lbl">${safeName}</div>
+          </div>`,
           iconSize: [18, 18],
           iconAnchor: [9, 9],
         });
-        const mk = L.marker([f.lat, f.lng], { icon }).addTo(m);
+        const mk = L.marker([f.lat, f.lng], { icon, zIndexOffset: 500 }).addTo(m);
         markersRef.current.push(mk);
       });
 
