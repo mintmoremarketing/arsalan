@@ -4,10 +4,12 @@ import { t } from "@/lib/i18n";
 import { haversineKm } from "@/lib/helpers";
 import { MENU_SAMPLE } from "@/lib/seed";
 import { IconRoute } from "./icons";
+import { useSwipeToClose } from "@/lib/useSwipeToClose";
 
 export default function ArsalanSheet() {
   const { lang, arsalans, selArsalanId, closingSheet, closeArsalan, go, user, friends } = useApp();
   const txt = t(lang);
+  const { dragY, bind } = useSwipeToClose(closeArsalan);
   const a = arsalans.find((x) => x.id === selArsalanId);
   if (!a) return null;
   const km = haversineKm(user, a).toFixed(1);
@@ -31,9 +33,14 @@ export default function ArsalanSheet() {
           position: "absolute", bottom: 0, left: 0, right: 0,
           background: "#191919", borderRadius: "24px 24px 0 0",
           padding: "0 0 110px", maxHeight: "90vh", overflowY: "auto",
+          transform: `translateY(${dragY}px)`,
+          transition: dragY === 0 ? "transform .18s ease" : undefined,
+          touchAction: "pan-y",
         }}
       >
-        <div style={{ width: 38, height: 4, background: "rgba(255,255,255,.18)", borderRadius: 2, margin: "14px auto 20px" }} />
+        <div {...bind} style={{ padding: "10px 0 6px", cursor: "grab", touchAction: "none" }}>
+          <div style={{ width: 38, height: 4, background: "rgba(255,255,255,.28)", borderRadius: 2, margin: "0 auto 14px" }} />
+        </div>
         <div style={{ padding: "0 22px" }}>
           <div className="flex items-center gap-3 mb-5">
             <div

@@ -3,10 +3,12 @@ import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import { crowdWord, crowdBars, haversineKm, driveMin } from "@/lib/helpers";
 import { IconX, IconRoute } from "./icons";
+import { useSwipeToClose } from "@/lib/useSwipeToClose";
 
 export default function PandalSheet() {
   const { lang, pandals, arsalans, selPandalId, closingSheet, closePandal, go, setSelArsalan, user, zones } = useApp();
   const txt = t(lang);
+  const { dragY, bind } = useSwipeToClose(closePandal);
   const p = pandals.find((x) => x.id === selPandalId);
   if (!p) return null;
   const ars = arsalans.find((a) => a.id === p.arsalanId);
@@ -23,9 +25,19 @@ export default function PandalSheet() {
           position: "absolute", bottom: 0, left: 0, right: 0,
           background: "#191919", borderRadius: "24px 24px 0 0",
           padding: "0 0 36px", maxHeight: "82vh", overflowY: "auto",
+          transform: `translateY(${dragY}px)`,
+          transition: dragY === 0 ? "transform .18s ease" : undefined,
+          touchAction: "pan-y",
         }}
       >
-        <div style={{ width: 38, height: 4, background: "rgba(255,255,255,.18)", borderRadius: 2, margin: "14px auto 20px" }} />
+        {/* Handle strip is the drag target — a fat invisible hit area around
+            the visible pill so it's easy to grab. */}
+        <div
+          {...bind}
+          style={{ padding: "10px 0 6px", cursor: "grab", touchAction: "none" }}
+        >
+          <div style={{ width: 38, height: 4, background: "rgba(255,255,255,.28)", borderRadius: 2, margin: "0 auto 14px" }} />
+        </div>
         <div style={{ padding: "0 22px" }}>
           <div className="flex items-start gap-2.5 mb-3.5">
             <div className="flex-1">
