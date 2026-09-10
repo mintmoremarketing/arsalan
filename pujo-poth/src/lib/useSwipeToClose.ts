@@ -25,13 +25,10 @@ export function useSwipeToClose(onClose: () => void, closeThreshold = 90) {
       const y = dragY;
       startYRef.current = null;
       if (y > closeThreshold) {
-        // Above threshold — commit close. Snap sheet fully off-screen first
-        // so the visual pull-down is continuous, then trigger the store close.
+        // Above threshold: keep sliding down from where the finger let go
+        // (no snap-back to 0) all the way off screen, then silently unmount.
         setDragY(window.innerHeight);
-        setTimeout(() => {
-          setDragY(0);
-          onClose();
-        }, 180);
+        setTimeout(onClose, 180);
       } else {
         setDragY(0);
       }
@@ -54,7 +51,7 @@ export function useSwipeToClose(onClose: () => void, closeThreshold = 90) {
       startYRef.current = null;
       if (y > closeThreshold) {
         setDragY(window.innerHeight);
-        setTimeout(() => { setDragY(0); onClose(); }, 180);
+        setTimeout(onClose, 180);
       } else {
         setDragY(0);
       }

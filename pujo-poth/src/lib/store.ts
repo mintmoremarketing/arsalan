@@ -58,6 +58,8 @@ interface State {
   setDesktop: (v: boolean) => void;
   closePandal: () => void;
   closeArsalan: () => void;
+  dismissPandal: () => void;
+  dismissArsalan: () => void;
   loadData: () => Promise<void>;
   subscribeFriends: () => () => void;
   pushMyPosition: () => Promise<void>;
@@ -246,6 +248,11 @@ export const useApp = create<State>((set, get) => ({
     set({ closingSheet: "arsalan" });
     setTimeout(() => set({ selArsalanId: null, closingSheet: null, screen: "map" }), 240);
   },
+  // Silent close — no store-driven slide-down animation. Used by the swipe
+  // gesture, which is already visually pulling the sheet off screen; running
+  // the CSS keyframe on top of that transform caused a double-animation jump.
+  dismissPandal: () => set({ selPandalId: null, closingSheet: null, screen: "map" }),
+  dismissArsalan: () => set({ selArsalanId: null, closingSheet: null, screen: "map" }),
   loadData: async () => {
     const c = sb();
     if (!c) return;

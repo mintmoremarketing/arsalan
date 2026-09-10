@@ -7,9 +7,10 @@ import { IconRoute } from "./icons";
 import { useSwipeToClose } from "@/lib/useSwipeToClose";
 
 export default function ArsalanSheet() {
-  const { lang, arsalans, selArsalanId, closingSheet, closeArsalan, go, user, friends } = useApp();
+  const { lang, arsalans, selArsalanId, closingSheet, closeArsalan, dismissArsalan, go, user, friends } = useApp();
   const txt = t(lang);
-  const { dragY, bind } = useSwipeToClose(closeArsalan);
+  const { dragY, bind } = useSwipeToClose(dismissArsalan);
+  const dragging = dragY > 0;
   const a = arsalans.find((x) => x.id === selArsalanId);
   if (!a) return null;
   const km = haversineKm(user, a).toFixed(1);
@@ -28,13 +29,13 @@ export default function ArsalanSheet() {
     <div className="absolute inset-0 z-20 anim-fade">
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,.55)" }} onClick={closeArsalan} />
       <div
-        className={closingSheet === "arsalan" ? "anim-sheet-down" : "anim-sheet-up"}
+        className={dragging ? "" : closingSheet === "arsalan" ? "anim-sheet-down" : "anim-sheet-up"}
         style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
           background: "#191919", borderRadius: "24px 24px 0 0",
           padding: "0 0 110px", maxHeight: "90vh", overflowY: "auto",
           transform: `translateY(${dragY}px)`,
-          transition: dragY === 0 ? "transform .18s ease" : undefined,
+          transition: dragging ? "transform .18s ease-out" : undefined,
           touchAction: "pan-y",
         }}
       >

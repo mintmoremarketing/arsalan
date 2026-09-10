@@ -6,9 +6,10 @@ import { IconX, IconRoute } from "./icons";
 import { useSwipeToClose } from "@/lib/useSwipeToClose";
 
 export default function PandalSheet() {
-  const { lang, pandals, arsalans, selPandalId, closingSheet, closePandal, go, setSelArsalan, user, zones } = useApp();
+  const { lang, pandals, arsalans, selPandalId, closingSheet, closePandal, dismissPandal, go, setSelArsalan, user, zones } = useApp();
   const txt = t(lang);
-  const { dragY, bind } = useSwipeToClose(closePandal);
+  const { dragY, bind } = useSwipeToClose(dismissPandal);
+  const dragging = dragY > 0;
   const p = pandals.find((x) => x.id === selPandalId);
   if (!p) return null;
   const ars = arsalans.find((a) => a.id === p.arsalanId);
@@ -20,13 +21,16 @@ export default function PandalSheet() {
     <div className="absolute inset-0 z-20 anim-fade">
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,.5)" }} onClick={closePandal} />
       <div
-        className={closingSheet === "pandal" ? "anim-sheet-down" : "anim-sheet-up"}
+        // Suppress the entrance / exit CSS keyframes while the user is
+        // manipulating the sheet by touch — otherwise we get two competing
+        // transforms and the sheet visibly jumps.
+        className={dragging ? "" : closingSheet === "pandal" ? "anim-sheet-down" : "anim-sheet-up"}
         style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
           background: "#191919", borderRadius: "24px 24px 0 0",
           padding: "0 0 36px", maxHeight: "82vh", overflowY: "auto",
           transform: `translateY(${dragY}px)`,
-          transition: dragY === 0 ? "transform .18s ease" : undefined,
+          transition: dragging ? "transform .18s ease-out" : undefined,
           touchAction: "pan-y",
         }}
       >
