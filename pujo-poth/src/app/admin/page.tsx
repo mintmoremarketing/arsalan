@@ -111,6 +111,7 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>({ kind: "zone", id: ZONES[0].id });
   const [saved, setSaved] = useState(false);
   const [edit, setEdit] = useState<{ kind: EditKind; zoneId: string; itemId: string | null }>({ kind: null, zoneId: "", itemId: null });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const reload = useCallback(async () => {
     const c = sb();
@@ -224,14 +225,23 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "#0d0d0d", color: "#f0eeec", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
-      <header style={{ background: "#111", borderBottom: "1px solid rgba(255,255,255,.07)", padding: "0 28px", height: 58, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
-        <h1 style={{ fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-          🕯️ Arsalan Near Me <span style={{ color: "#E9C15B" }}>Admin</span>
-          <span style={{ marginLeft: 12, fontSize: 11, fontWeight: 600, color: hasSupabase() ? "#4caf50" : "#ff6b6b" }}>
-            {hasSupabase() ? "● Supabase" : "○ No Supabase env"}
+      <header className="admin-header">
+        <button
+          className="hamburger"
+          aria-label="Menu"
+          onClick={() => setSidebarOpen((v) => !v)}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="#f0eeec" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+        <h1 className="admin-title">
+          <span className="hide-xs">🕯️ </span>Arsalan <span style={{ color: "#E9C15B" }}>Admin</span>
+          <span className="supabase-status" style={{ color: hasSupabase() ? "#4caf50" : "#ff6b6b" }}>
+            {hasSupabase() ? "● Supabase" : "○ No env"}
           </span>
         </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="admin-header-actions">
           {saved && <span style={{ fontSize: 12, color: "#4caf50", fontWeight: 600 }}>✓ Saved</span>}
           <button className="btn-ghost" onClick={() => {
             const np = prompt("New password (min 6 chars):");
@@ -242,15 +252,16 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
         </div>
       </header>
 
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-        <nav style={{ width: 220, flex: "none", background: "#111", borderRight: "1px solid rgba(255,255,255,.07)", padding: "20px 12px 80px", display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 58, height: "calc(100vh - 58px)", overflowY: "auto" }}>
+      <div className="admin-body">
+        {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
+        <nav className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
           <div className="sidebar-label">Zones</div>
           {zones.map((z) => {
             const active = tab.kind === "zone" && tab.id === z.id;
             return (
               <button
                 key={z.id}
-                onClick={() => setTab({ kind: "zone", id: z.id })}
+                onClick={() => { setTab({ kind: "zone", id: z.id }); setSidebarOpen(false); }}
                 className={`zone-tab ${active ? "active" : ""}`}
               >
                 <span className="zone-dot" style={{ background: z.color || "#E9C15B" }} />
@@ -258,19 +269,19 @@ function AdminApp({ onLogout }: { onLogout: () => void }) {
               </button>
             );
           })}
-          <button className="add-zone-btn" onClick={addZone}>
+          <button className="add-zone-btn" onClick={() => { addZone(); setSidebarOpen(false); }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
             Add zone
           </button>
           <div className="sidebar-label" style={{ marginTop: "auto" }}>Insights</div>
-          <button className={`zone-tab ${tab.kind === "stats" ? "active" : ""}`} onClick={() => setTab({ kind: "stats" })}>📊 Live stats</button>
+          <button className={`zone-tab ${tab.kind === "stats" ? "active" : ""}`} onClick={() => { setTab({ kind: "stats" }); setSidebarOpen(false); }}>📊 Live stats</button>
           <div className="sidebar-label">Settings</div>
-          <button className={`zone-tab ${tab.kind === "settings" ? "active" : ""}`} onClick={() => setTab({ kind: "settings" })}>⚙ Settings</button>
+          <button className={`zone-tab ${tab.kind === "settings" ? "active" : ""}`} onClick={() => { setTab({ kind: "settings" }); setSidebarOpen(false); }}>⚙ Settings</button>
         </nav>
 
-        <div style={{ flex: 1, padding: "28px 32px 100px", overflowY: "auto" }}>
+        <div className="admin-content">
           {tab.kind === "zone" && zone && (
             <ZoneEditor
               zone={zone}
@@ -425,7 +436,7 @@ function ZoneEditor({
             Manage Arsalan outlets and pandals for this zone
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             className="btn-fetch"
             onClick={bulkFetch}
@@ -788,7 +799,7 @@ function StatsPanel() {
           <p style={{ fontSize: 12, color: "rgba(255,255,255,.35)", marginTop: 2 }}>Anonymous session counts, keyed by IP + user agent.</p>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
         <Kpi label="Live now" value={live} sub="active in last 5 min" gold />
         <Kpi label="Today" value={today} sub="last 24 hours" />
         <Kpi label="All time" value={total} sub="unique visitors" />
@@ -934,8 +945,85 @@ function AdminStyles() {
       .empty-row { padding: 20px 18px; font-size: 13px; color: rgba(255,255,255,.25); text-align: center; }
       .zone-name-row { display: flex; gap: 12px; margin-bottom: 24px; background: #191919; border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 18px; }
 
+      /* Layout scaffolding */
+      .admin-header {
+        background: #111; border-bottom: 1px solid rgba(255,255,255,.07);
+        padding: 0 20px; height: 58px; display: flex; align-items: center;
+        gap: 12px; position: sticky; top: 0; z-index: 50;
+      }
+      .admin-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0; }
+      .supabase-status { margin-left: 12px; font-size: 11px; font-weight: 600; }
+      .admin-header-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+      .hamburger {
+        display: none; width: 36px; height: 36px; border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.06);
+        color: #f0eeec; cursor: pointer; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .admin-body { display: flex; flex: 1; min-height: 0; }
+      .admin-sidebar {
+        width: 220px; flex: none; background: #111; border-right: 1px solid rgba(255,255,255,.07);
+        padding: 20px 12px 80px; display: flex; flex-direction: column; gap: 4;
+        position: sticky; top: 58px; height: calc(100vh - 58px); overflow-y: auto;
+      }
+      .admin-content { flex: 1; padding: 28px 32px 100px; overflow-y: auto; min-width: 0; }
+      .sidebar-backdrop {
+        display: none; position: fixed; inset: 58px 0 0 0; background: rgba(0,0,0,.55);
+        z-index: 40;
+      }
+
       .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
       .modal { background: #1a1a1a; border: 1px solid rgba(255,255,255,.1); border-radius: 18px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding: 28px; }
+
+      /* ── Tablet (≤ 900px): sidebar becomes a slide-in drawer ─────────────── */
+      @media (max-width: 900px) {
+        .hamburger { display: flex; }
+        .admin-sidebar {
+          position: fixed; top: 58px; left: 0; bottom: 0; height: auto; width: 240px;
+          transform: translateX(-100%); transition: transform .22s ease;
+          z-index: 50; box-shadow: 4px 0 24px rgba(0,0,0,.5);
+        }
+        .admin-sidebar.open { transform: translateX(0); }
+        .sidebar-backdrop { display: block; }
+        .admin-content { padding: 20px 20px 100px; }
+        .zone-name-row { flex-wrap: wrap; }
+        .zone-name-row .field { flex: 1 1 45%; }
+        .section-header { flex-wrap: wrap; gap: 10px; }
+        .section-header > div:first-child { flex: 1 1 100%; }
+      }
+
+      /* Stats KPI grid — collapse to 1 col on mobile */
+      @media (max-width: 600px) {
+        .kpi-grid { grid-template-columns: 1fr !important; }
+      }
+
+      /* ── Mobile (≤ 600px): tighter header, stacked item rows, full-screen modal */
+      @media (max-width: 600px) {
+        .admin-header { padding: 0 12px; gap: 8px; }
+        .admin-title { font-size: 14px; gap: 4px; }
+        .supabase-status { display: none; }
+        .hide-xs { display: none; }
+        .admin-header-actions .btn-ghost { padding: 6px 10px; font-size: 12px; }
+        .admin-content { padding: 16px 14px 100px; }
+        .zone-name-row { padding: 14px; }
+        .zone-name-row .field { flex: 1 1 100%; }
+        .item-row {
+          flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 12px 14px;
+        }
+        .item-actions {
+          flex: 1 1 100%; justify-content: flex-end; gap: 6px;
+        }
+        .item-actions .btn-ghost, .item-actions .btn-sm, .item-actions .btn-danger {
+          padding: 5px 10px; font-size: 11px;
+        }
+        .card-header { padding: 12px 14px; }
+        .modal-bg { padding: 0; align-items: stretch; }
+        .modal {
+          max-width: 100%; max-height: 100vh; border-radius: 0; padding: 20px;
+          padding-top: calc(20px + env(safe-area-inset-top, 0px));
+          padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        }
+      }
       .modal h2 { font-size: 18px; font-weight: 800; margin-bottom: 20px; margin-top: 0; }
       .modal-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
       .crowd-row { display: flex; gap: 6px; }
