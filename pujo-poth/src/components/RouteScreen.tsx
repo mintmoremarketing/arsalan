@@ -43,7 +43,7 @@ export default function RouteScreen() {
           onClick={back}
           className="w-[38px] h-[38px] rounded-[12px] border flex items-center justify-center"
           style={{
-            position: "absolute", top: 70, left: 22, zIndex: 2,
+            position: "absolute", top: "calc(18px + env(safe-area-inset-top, 0px))", left: 22, zIndex: 2,
             background: "rgba(0,0,0,.45)", backdropFilter: "blur(10px)",
             borderColor: "rgba(255,255,255,.1)",
           }}

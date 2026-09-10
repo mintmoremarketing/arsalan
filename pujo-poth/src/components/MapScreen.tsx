@@ -29,8 +29,10 @@ export default function MapScreen() {
     <div className="absolute inset-0 z-[5]">
       <MapView />
 
-      {/* Top controls */}
-      <div className="absolute z-[900] left-3.5 right-3.5 flex gap-2" style={{ top: "max(68px, env(safe-area-inset-top))" }}>
+      {/* Top controls — anchor to the visible viewport. In a browser tab that
+          means right under the address bar; in an installed PWA the safe-area
+          value pushes it past the status bar / notch automatically. */}
+      <div className="absolute z-[900] left-3.5 right-3.5 flex gap-2" style={{ top: "calc(12px + env(safe-area-inset-top, 0px))" }}>
         <button
           onClick={() => go("search")}
           className="flex-1 flex items-center gap-2.5 rounded-[14px] px-3.5 py-2.5 border text-left"
@@ -61,7 +63,7 @@ export default function MapScreen() {
       <div
         className="absolute z-[900]"
         style={{
-          top: 162,
+          top: "calc(106px + env(safe-area-inset-top, 0px))",
           right: 14,
           background: "rgba(12,12,12,.88)",
           backdropFilter: "blur(16px)",
@@ -96,7 +98,7 @@ export default function MapScreen() {
       <div
         className="absolute z-[900] left-0 right-0 flex gap-1.5 overflow-x-auto"
         style={{
-          top: 122,
+          top: "calc(66px + env(safe-area-inset-top, 0px))",
           padding: "0 14px",
           WebkitOverflowScrolling: "touch",
           scrollbarWidth: "none",

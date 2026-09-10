@@ -35,7 +35,7 @@ export default function SearchScreen() {
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col anim-fade" style={{ background: "#111" }}>
-      <div className="flex-none px-5" style={{ paddingTop: 62 }}>
+      <div className="flex-none px-5" style={{ paddingTop: "calc(14px + env(safe-area-inset-top, 0px))" }}>
         <div className="flex items-center gap-2.5 mb-4">
           <button
             onClick={back}

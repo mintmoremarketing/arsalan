@@ -22,7 +22,7 @@ export default function FriendsScreen() {
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col anim-fade" style={{ background: "#111" }}>
-      <div className="flex-none px-5" style={{ paddingTop: 66 }}>
+      <div className="flex-none px-5" style={{ paddingTop: "calc(14px + env(safe-area-inset-top, 0px))" }}>
         <div className="flex items-center gap-2.5 mb-1.5">
           <button
             onClick={back}
