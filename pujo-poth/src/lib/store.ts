@@ -52,6 +52,8 @@ interface State {
   createGroup: () => string;
   joinGroup: (code: string) => void;
   leaveGroup: () => void;
+  removeMyDot: () => Promise<void>;
+  resetIdentity: () => Promise<void>;
   setEditingIdentity: (v: boolean) => void;
   setDesktop: (v: boolean) => void;
   closePandal: () => void;
@@ -205,6 +207,28 @@ export const useApp = create<State>((set, get) => ({
     const id = get().identity?.id;
     const c = sb();
     if (id && c) c.from("presence").delete().eq("identity_id", id);
+  },
+  removeMyDot: async () => {
+    // Stop broadcasting and delete our presence row so friends stop seeing us
+    set({ share: false });
+    const id = get().identity?.id;
+    const c = sb();
+    if (id && c) await c.from("presence").delete().eq("identity_id", id);
+  },
+  resetIdentity: async () => {
+    // Full teardown of "who am I on this device": share off, presence deleted,
+    // identity row deleted, localStorage cleared. User goes back to the
+    // "Set your dot" onboarding screen.
+    const id = get().identity?.id;
+    const c = sb();
+    if (id && c) {
+      await c.from("presence").delete().eq("identity_id", id);
+      await c.from("identities").delete().eq("id", id);
+    }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(IDENTITY_KEY);
+    }
+    set({ identity: null, share: false, editingIdentity: false });
   },
   setDesktop: (v) => set({ isDesktop: v }),
   closePandal: () => {
