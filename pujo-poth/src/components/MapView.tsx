@@ -110,10 +110,10 @@ export default function MapView({ heightClass = "absolute inset-0" }: { heightCl
           iconAnchor: [21, 21],
         });
         const mk = L.marker([p.lat, p.lng], { icon }).addTo(m);
-        mk.on("click", () => {
-          setSelPandal(p.id);
-          go("pandal");
-        });
+        // Marker click just "focuses" the pandal — draws its route, scrolls
+        // the card rail to it, but does NOT open the full sheet. The sheet
+        // opens when the user taps the card.
+        mk.on("click", () => setSelPandal(p.id));
         markersRef.current.push(mk);
       });
 
@@ -146,10 +146,9 @@ export default function MapView({ heightClass = "absolute inset-0" }: { heightCl
             iconAnchor: [22, 22],
           });
           const mk = L.marker([a.lat, a.lng], { icon }).addTo(m);
-          mk.on("click", () => {
-            setSelArsalan(a.id);
-            go("arsalan");
-          });
+          // Same pattern as pandals: focus (highlight the Arsalan bar) but
+          // don't open the sheet — user taps the bar to commit.
+          mk.on("click", () => setSelArsalan(a.id));
           markersRef.current.push(mk);
         });
 

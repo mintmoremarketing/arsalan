@@ -1,5 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
+import { useEffect, useRef } from "react";
 import { useApp } from "@/lib/store";
 import { t } from "@/lib/i18n";
 import { haversineKm, driveMin, crowdWord, pandalPhoto, nearestNeighborOrder, pickBestArsalan } from "@/lib/helpers";
@@ -16,6 +17,17 @@ export default function MapScreen() {
 
   const zonePandalsRaw = pandals.filter((p) => p.zoneId === zone);
   const zonePandals = nearestNeighborOrder(zonePandalsRaw, { lat: user.lat, lng: user.lng } as any);
+  const selPandalId = useApp((s) => s.selPandalId);
+  const selArsalanId = useApp((s) => s.selArsalanId);
+  const selArs = arsalans.find((a) => a.id === selArsalanId);
+  const cardRailRef = useRef<HTMLDivElement>(null);
+
+  // When the user taps a pandal pin, scroll the matching card into view
+  useEffect(() => {
+    if (!selPandalId) return;
+    const el = cardRailRef.current?.querySelector<HTMLElement>(`[data-pandal-id="${selPandalId}"]`);
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [selPandalId]);
   const liveWaits = useApp((s) => s.liveWaits);
   const pick = pickBestArsalan(user, arsalans, liveWaits);
   const nearArs = pick?.best.arsalan;
@@ -156,13 +168,22 @@ export default function MapScreen() {
       >
         {nearArs && (
           <button
-            onClick={() => { useApp.getState().reportChosenArsalan(nearArs.id); setSelArsalan(nearArs.id); go("arsalan"); }}
+            onClick={() => {
+              // If the map has already focused an Arsalan (any tap on its pin),
+              // route the bar to that outlet instead of the best-pick default.
+              const target = selArsalanId ? arsalans.find((a) => a.id === selArsalanId) || nearArs : nearArs;
+              useApp.getState().reportChosenArsalan(target.id);
+              setSelArsalan(target.id);
+              go("arsalan");
+            }}
             className="mx-auto mb-2.5 flex items-center gap-3 rounded-2xl border"
             style={{
               padding: "13px 20px",
-              background: "rgba(10,10,10,.88)",
+              background: selArsalanId ? "rgba(233,193,91,.15)" : "rgba(10,10,10,.88)",
               backdropFilter: "blur(16px)",
-              borderColor: "rgba(233,193,91,.35)",
+              borderColor: selArsalanId ? "#E9C15B" : "rgba(233,193,91,.35)",
+              boxShadow: selArsalanId ? "0 4px 20px rgba(233,193,91,.35)" : undefined,
+              transition: "background .2s, border-color .2s, box-shadow .2s",
               maxWidth: "calc(100% - 28px)",
               display: "flex",
             }}
@@ -177,10 +198,12 @@ export default function MapScreen() {
             />
             <div className="flex-1 min-w-0 text-left">
               <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".13em", textTransform: "uppercase", color: "#E9C15B" }}>
-                {savings > 3 ? `Best pick · ${savings} ${txt.min} faster` : txt.nearest}
+                {selArs ? "You picked" : savings > 3 ? `Best pick · ${savings} ${txt.min} faster` : txt.nearest}
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#f0eeec", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                Arsalan {nearArs.shortName} · {nearKm} km · {nearMin}+{nearWait} {txt.min}
+                {selArs
+                  ? `Arsalan ${selArs.shortName} · ${haversineKm(user, selArs).toFixed(1)} km · ${driveMin(haversineKm(user, selArs))} ${txt.min}`
+                  : `Arsalan ${nearArs.shortName} · ${nearKm} km · ${nearMin}+${nearWait} ${txt.min}`}
               </div>
             </div>
             <IconRoute />
@@ -188,15 +211,30 @@ export default function MapScreen() {
         )}
 
         <div
+          ref={cardRailRef}
           className="flex gap-3 px-3.5 overflow-x-auto"
           style={{ scrollSnapType: "x mandatory", scrollPadding: "0 14px", WebkitOverflowScrolling: "touch" }}
         >
-          {zonePandals.map((p, i) => (
+          {zonePandals.map((p, i) => {
+            const selected = p.id === selPandalId;
+            return (
             <div
               key={p.id}
-              onClick={() => { setSelPandal(p.id); go("pandal"); }}
+              data-pandal-id={p.id}
+              onClick={() => {
+                // First tap on a card = focus (same as map pin). Second tap on
+                // an already-focused card = commit and open the sheet.
+                if (selected) go("pandal");
+                else setSelPandal(p.id);
+              }}
               className="flex-none w-[220px] rounded-[18px] overflow-hidden cursor-pointer border"
-              style={{ background: "rgba(255,255,255,.07)", borderColor: "rgba(255,255,255,.08)", scrollSnapAlign: "center" }}
+              style={{
+                background: selected ? "rgba(233,193,91,.14)" : "rgba(255,255,255,.07)",
+                borderColor: selected ? "#E9C15B" : "rgba(255,255,255,.08)",
+                boxShadow: selected ? "0 4px 20px rgba(233,193,91,.35)" : undefined,
+                transition: "background .2s, border-color .2s, box-shadow .2s",
+                scrollSnapAlign: "center",
+              }}
             >
               <div className="h-[120px] relative overflow-hidden" style={{ background: "#1a1a1a" }}>
                 <img src={pandalPhoto(p)} alt={p.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
@@ -228,7 +266,8 @@ export default function MapScreen() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           <div
             onClick={() => go("planner")}
             className="flex-none w-[160px] rounded-[18px] border flex flex-col items-center justify-center gap-2 p-4 cursor-pointer"

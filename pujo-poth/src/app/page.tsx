@@ -12,7 +12,7 @@ import TabBar from "@/components/TabBar";
 import DesktopShell from "@/components/DesktopShell";
 
 export default function Home() {
-  const { screen, isDesktop, setDesktop, loadData, subscribeFriends, identity, share, user, selPandalId, pandals, arsalans, setRouteStops } = useApp();
+  const { screen, isDesktop, setDesktop, loadData, subscribeFriends, identity, share, user, selPandalId, selArsalanId, pandals, arsalans, setRouteStops } = useApp();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -84,15 +84,23 @@ export default function Home() {
   useEffect(() => {
     if (isDesktop) return;
     const p = pandals.find((x) => x.id === selPandalId);
-    if (p && (screen === "map" || screen === "pandal" || screen === "route")) {
-      const ars = arsalans.find((a) => a.id === p.arsalanId);
+    const a = arsalans.find((x) => x.id === selArsalanId);
+    const onRouteScreens = screen === "map" || screen === "pandal" || screen === "route" || screen === "arsalan";
+    if (p && onRouteScreens) {
+      const ars = arsalans.find((x) => x.id === p.arsalanId);
       const stops = [{ lat: user.lat, lng: user.lng, label: "You" }, { lat: p.lat, lng: p.lng, label: p.name }];
       if (ars) stops.push({ lat: ars.lat, lng: ars.lng, label: `Arsalan ${ars.shortName}` });
       setRouteStops(stops);
-    } else if (!p && screen === "map") {
+    } else if (a && onRouteScreens) {
+      // Arsalan focused with no pandal → simple two-stop route
+      setRouteStops([
+        { lat: user.lat, lng: user.lng, label: "You" },
+        { lat: a.lat, lng: a.lng, label: `Arsalan ${a.shortName}` },
+      ]);
+    } else if (screen === "map") {
       setRouteStops([]);
     }
-  }, [isDesktop, selPandalId, screen, pandals, arsalans, user, setRouteStops]);
+  }, [isDesktop, selPandalId, selArsalanId, screen, pandals, arsalans, user, setRouteStops]);
 
   if (!mounted) return null;
 
