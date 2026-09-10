@@ -13,7 +13,7 @@ const COLORS = [
 ];
 
 export default function FriendsScreen() {
-  const { lang, back, identity, saveIdentity, share, setShare, friends, editingIdentity, setEditingIdentity, removeMyDot, resetIdentity } = useApp();
+  const { lang, back, identity, saveIdentity, share, setShare, friends, editingIdentity, setEditingIdentity, resetIdentity } = useApp();
   const txt = t(lang);
   const [name, setName] = useState(identity?.name || "");
   const [color, setColor] = useState(identity?.color || COLORS[0]);
@@ -129,14 +129,8 @@ export default function FriendsScreen() {
                 Change name or colour
               </button>
               <button
-                onClick={() => confirm("Remove your dot from the map? Friends will stop seeing you until you turn share back on.") && removeMyDot()}
-                style={{ background: "transparent", border: 0, fontSize: 12, fontWeight: 600, color: "#ff8a8a", textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
-              >
-                Remove my dot
-              </button>
-              <button
                 onClick={() => confirm("Reset your identity? This deletes your name & colour from this device and Supabase.") && resetIdentity()}
-                style={{ background: "transparent", border: 0, fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,.3)", textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
+                style={{ background: "transparent", border: 0, fontSize: 12, fontWeight: 600, color: "#ff8a8a", textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}
               >
                 Reset identity
               </button>

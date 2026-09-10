@@ -580,7 +580,7 @@ function FindTab() {
 
 // ── GROUP TAB ───────────────────────────────────────────────────────────────
 function GroupTab() {
-  const { lang, identity, share, setShare, friends, saveIdentity, editingIdentity, setEditingIdentity, removeMyDot, resetIdentity } = useApp();
+  const { lang, identity, share, setShare, friends, saveIdentity, editingIdentity, setEditingIdentity, resetIdentity } = useApp();
   const txt = t(lang);
   const [name, setName] = useState(identity?.name || "");
   const [color, setColor] = useState(identity?.color || "#E9C15B");
@@ -642,10 +642,7 @@ function GroupTab() {
         <button onClick={() => setEditingIdentity(true)} style={{ background: "transparent", border: 0, fontSize: 11, color: "rgba(255,255,255,.35)", textDecoration: "underline", cursor: "pointer" }}>
           Edit name or colour
         </button>
-        <button onClick={() => confirm("Remove your dot from the map? Friends will stop seeing you until you turn share back on.") && removeMyDot()} style={{ background: "transparent", border: 0, fontSize: 11, color: "#ff8a8a", textDecoration: "underline", cursor: "pointer" }}>
-          Remove my dot
-        </button>
-        <button onClick={() => confirm("Reset your identity? This deletes your name & colour from this device and Supabase.") && resetIdentity()} style={{ background: "transparent", border: 0, fontSize: 11, color: "rgba(255,255,255,.35)", textDecoration: "underline", cursor: "pointer" }}>
+        <button onClick={() => confirm("Reset your identity? This deletes your name & colour from this device and Supabase.") && resetIdentity()} style={{ background: "transparent", border: 0, fontSize: 11, color: "#ff8a8a", textDecoration: "underline", cursor: "pointer" }}>
           Reset identity
         </button>
       </div>
